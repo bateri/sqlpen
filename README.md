@@ -17,6 +17,22 @@ sqlpen postgres://reader@db.example.com/shop    # a PostgreSQL database
 sqlpen                                          # the one $DATABASE_URL names
 ```
 
+## Install
+
+sqlpen is one file, with nothing to install beside it, for macOS on Apple silicon and Linux on
+arm64 and x86_64:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bateri/sqlpen/main/install.sh | sh
+```
+
+The installer takes the newest release (or `SQLPEN_VERSION=0.1.0`), checks it against the release's
+`SHA256SUMS`, and puts it in `~/.local/bin` (`SQLPEN_INSTALL=<dir>` puts it elsewhere). A file a
+browser downloads is quarantined by macOS; one curl downloads is not.
+
+There is no release yet: sqlpen is built on a pencere that has not been released (RELEASING.md).
+Until there is one, build it from this repository (below).
+
 ## What it does
 
 **The editor is the terminal's own** (pencere's editor): several carets, undo, the input method of
@@ -78,8 +94,13 @@ to 512 KiB.
 
 ```sh
 cargo build --release      # target/release/sqlpen, the page carried in it
-make check                 # formatting, lints and the tests (the page's included)
+make check                 # formatting, lints and the tests (the page's and the installer's)
+make shots                 # pictures of the page in target/shots/ (macOS)
 ```
+
+`make check` needs Rust 1.88 or later and Node 22 (for the installer's tests and the release
+tools). It is the gate GitHub runs on every push and pull request, on Linux and macOS; how a release
+is made is in RELEASING.md.
 
 The page (`src/view/`, Lua) is run by the tests in pencere's own interpreter, with pencere's
 editors, its calls answered by the program over the demo's database (`make test-page`). The

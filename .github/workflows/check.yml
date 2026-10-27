@@ -1,0 +1,67 @@
+# The gate on every push to main and every pull request: `make check` (rustfmt and clippy, the
+# program's tests, the page's tests in pencere's interpreter with pencere's editors, and the
+# installer's tests), on Linux and macOS. On Linux the program's PostgreSQL tests run too, against
+# the demo database of the README in a PostgreSQL 17 container.
+#
+# pencere, which sqlpen is built and tested with, is the one Cargo.lock takes: the program is built
+# on that crate, and the page's tests run on the kit's crates of the same pencere. Nothing else says
+# which pencere, and there is no checkout of it here. Moving it is a change of Cargo.toml and
+# Cargo.lock, and of nothing here.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      # The toolchain the crate's rust-version names, so a new lint of a later release does not turn
+      # the gate red on code nobody touched.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.88.0
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: gate
+          workspaces: . -> target
+      # The README's demo database: PostgreSQL 17 with pg_stat_statements, the shop seeded, and the
+      # read-only role the tests connect as.
+      - name: Start PostgreSQL
+        if: runner.os == 'Linux'
+        run: |
+          docker run -d --name sqlpen-pg -e POSTGRES_PASSWORD=sqlpen -e POSTGRES_DB=shop \
+            -p 127.0.0.1:55432:5432 postgres:17 -c shared_preload_libraries=pg_stat_statements
+          # Over TCP: the server the image starts to run its setup listens on its socket only.
+          for _ in $(seq 60); do
+            docker exec sqlpen-pg pg_isready -q -h 127.0.0.1 -U postgres -d shop && break
+            sleep 1
+          done
+          docker exec -i sqlpen-pg psql -q -v ON_ERROR_STOP=1 -U postgres -d shop < demo/postgres.sql
+          echo "SQLPEN_TEST_PG=postgres://reader:reader@127.0.0.1:55432/shop" >> "$GITHUB_ENV"
+      - run: make check
+      - name: Say what the gate was held to
+        run: |
+          {
+            echo "### What this run was held to"
+            echo
+            echo "pencere at \`$(node tools/release.mjs pencere-ref)\` (\`Cargo.lock\`): the crate the program is built on, and the kit's crates (its interpreter and editors) the page's tests run the page on."
+            if [ -n "${SQLPEN_TEST_PG:-}" ]; then
+              echo
+              echo "PostgreSQL: the program's tests ran against PostgreSQL 17 with the demo database."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
