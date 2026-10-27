@@ -1,0 +1,45 @@
+[package]
+name = "sqlpen"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "GPL-3.0-or-later"
+description = "A SQL client in the terminal pane: PostgreSQL and SQLite, with an editor, a grid and plans"
+repository = "https://github.com/bateri/sqlpen"
+
+[[bin]]
+name = "sqlpen"
+path = "src/program/main.rs"
+
+[dependencies]
+# The program's side of pencere, at the commit whose kit has the editor (crates.io's 0.3 has kit 1.0).
+pencere = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+serde_json = "1"
+# PostgreSQL: the blocking client over tokio-postgres, TLS by rustls with ring (no C toolchain), the
+# system's roots. The same stack pgterm uses.
+postgres = "0.19"
+tokio-postgres-rustls = { version = "0.13", default-features = false }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rustls-native-certs = "0.8"
+# SQLite, built in: nothing to install for `sqlpen file.db` or `sqlpen --demo`.
+rusqlite = { version = "0.37", features = ["bundled", "modern_sqlite", "column_decltype"] }
+
+[build-dependencies]
+pencere = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+
+[dev-dependencies]
+# The page is run against the kit's own interpreter and editors, as a terminal runs it.
+pencere-sandbox = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+pencere-view = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+pencere-editor = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+# Pictures of the page for the eye (`shot`): the page drawn as the kit lays it out, in the system's
+# fonts, by the rasteriser and the SVG renderer the kit's own sandbox uses.
+resvg = { version = "0.48.1", default-features = false }
+fontdue = "0.9"
+
+[profile.dev.package.cranelift-codegen]
+opt-level = 3
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
