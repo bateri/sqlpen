@@ -128,21 +128,6 @@ function pencereRef() {
   return commit ?? `crates-v${version}`;
 }
 
-/**
- * The release of pencere a release of sqlpen is built with. A commit is what the gate is held to
- * while sqlpen needs what no release of pencere has, and nothing to release with: what a release
- * is built from is published (RELEASING.md).
- */
-function pencereRelease() {
-  const { commit, version } = pencereLocked();
-  if (commit !== undefined) {
-    refuse(
-      `Cargo.lock takes pencere at ${commit}, a commit of it and not a release of it on crates.io: a release of sqlpen is built with a published pencere, so there is none until Cargo.toml takes one (RELEASING.md)`,
-    );
-  }
-  return version;
-}
-
 // ---- the changelog ---------------------------------------------------------
 
 const changelogPath = join(root, "CHANGELOG.md");
@@ -264,7 +249,7 @@ function releaseState(tag) {
 
 /** Everything a release of the prepared version checks, on any branch: what `make rehearse` runs. */
 function rehearse() {
-  const pencere = pencereRelease();
+  const pencere = pencereRef();
   const { version, tag } = versionChecks();
   if (tagExists(tag)) refuse(`the tag ${tag} exists`);
   console.log(`${NAME} ${version} is ready to be released as ${tag}, with pencere ${pencere}`);
@@ -320,7 +305,6 @@ function plan() {
     console.error(`${tagOf(version)} exists: nothing to release`);
     release = false;
   } else {
-    pencereRelease();
     const { tag } = versionChecks();
     if (tagExists(tag)) {
       if (!tagIsHead(tag)) refuse(`${tag} is on another commit: a tag is never moved`);

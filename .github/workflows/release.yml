@@ -2,12 +2,10 @@
 # finished green on a push to main, and when it is started by hand:
 #
 # - plan: whether the version in Cargo.toml has no tag yet (`make release-prepare`,
-#   committed and pushed). A commit that moved no version ends here. While Cargo.lock takes pencere
-#   at a commit and not at a release of it on crates.io, plan refuses: a release is built with a
-#   published pencere.
+#   committed and pushed). A commit that moved no version ends here.
 # - build: the three files, each built on a runner of its own system and architecture (no
 #   emulation, no cross toolchain), from nothing: no cache. Cargo builds pencere into each from the
-#   source Cargo.lock names; nothing of pencere's is downloaded ready-made.
+#   source Cargo.lock names, a commit or a release; nothing of pencere's is downloaded ready-made.
 # - sums: the three together, summed, checked and attested (provenance).
 # - draft: the tag `v<version>` and the GitHub release as a draft, with the changelog section as its
 #   notes and the files.

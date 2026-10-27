@@ -26,10 +26,9 @@ crates.io, that `Cargo.lock` names (`node tools/release.mjs pencere-ref`) into `
 builds it there. Nothing else says which pencere: moving it is a change of `Cargo.toml` and
 `Cargo.lock`.
 
-A release of sqlpen takes pencere from crates.io, so that what it is built from is a published
-version: switch to it, in a commit of its own, before `make release-prepare`. Until then `make
-rehearse` and the workflow's plan refuse, and say so. Each file is built by Cargo from that source,
-on its own runner; nothing of pencere's is downloaded ready-made.
+A release of sqlpen is built with that pencere, a commit or a release alike: Cargo builds it into
+each file from the source `Cargo.lock` names, on the file's own runner, and nothing of pencere's is
+downloaded ready-made. `make rehearse` says which pencere it is.
 
 ## A release
 
@@ -55,8 +54,7 @@ finished by running the workflow by hand on `main` (**Run workflow**, or
 
 ### What the checks refuse
 
-- a `Cargo.lock` that takes pencere at a commit, not at a release of it on crates.io, or takes its
-  packages from more than one place;
+- a `Cargo.lock` that takes pencere's packages from more than one place;
 - a version that is not after the last, or a `Cargo.toml` that disagrees with the changelog;
 - a non-empty `## [Unreleased]`, or an empty release section;
 - a commit whose gate is not green, a tag on another commit, or a release that is public already;
