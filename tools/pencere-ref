@@ -1,0 +1,35 @@
+#!/bin/sh
+# The pencere that Cargo.lock takes sqlpen's pencere crates from, as a git ref: the commit of a git
+# source (its whole SHA), or crates-v<version> for a release on crates.io. Every pencere crate comes
+# from the same one, of bateri/pencere or crates.io, or there is no one pencere to fetch: then it
+# says why and fails.
+set -eu
+lock="$(dirname "$0")/../Cargo.lock"
+awk '
+function flush() {
+	if (name !~ /^pencere(-|$)/) return
+	if (source ~ /^git\+https:\/\/github\.com\/bateri\/pencere(\.git)?[?#]/) {
+		ref = source; sub(/.*#/, "", ref)
+	} else if (source == "registry+https://github.com/rust-lang/crates.io-index") {
+		ref = "crates-v" version
+	} else {
+		printf "pencere-ref: %s comes from %s, not bateri/pencere or crates.io\n", name, (source == "" ? "a path" : source) > "/dev/stderr"
+		failed = 1; return
+	}
+	if (found == "") { found = ref; first = name }
+	else if (ref != found) {
+		printf "pencere-ref: %s is at %s and %s at %s: the pencere crates are taken from one pencere\n", first, found, name, ref > "/dev/stderr"
+		failed = 1
+	}
+}
+/^\[\[package\]\]$/ { flush(); name = version = source = "" }
+/^name = /    { name = $3;    gsub(/"/, "", name) }
+/^version = / { version = $3; gsub(/"/, "", version) }
+/^source = /  { source = $3;  gsub(/"/, "", source) }
+END {
+	flush()
+	if (failed) exit 1
+	if (found == "") { print "pencere-ref: Cargo.lock takes no pencere crate" > "/dev/stderr"; exit 1 }
+	print found
+}
+' "$lock"

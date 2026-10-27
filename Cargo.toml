@@ -13,7 +13,9 @@ path = "src/program/main.rs"
 
 [dependencies]
 # The program's side of pencere, at the commit whose kit has the editor (crates.io's 0.3 has kit 1.0).
-pencere = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+# Every pencere crate here is at the same commit, written whole: Cargo.lock is where it is pinned,
+# and `tools/pencere-ref` reads it there for `make dev`.
+pencere = { git = "https://github.com/bateri/pencere", rev = "bf6f8018fce9a62a3b395de64fd0e8a5d479374a" }
 serde_json = "1"
 # PostgreSQL: the blocking client over tokio-postgres, TLS by rustls with ring (no C toolchain), the
 # system's roots. The same stack pgterm uses.
@@ -25,13 +27,13 @@ rustls-native-certs = "0.8"
 rusqlite = { version = "0.37", features = ["bundled", "modern_sqlite", "column_decltype"] }
 
 [build-dependencies]
-pencere = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+pencere = { git = "https://github.com/bateri/pencere", rev = "bf6f8018fce9a62a3b395de64fd0e8a5d479374a" }
 
 [dev-dependencies]
 # The page is run against the kit's own interpreter and editors, as a terminal runs it.
-pencere-sandbox = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
-pencere-view = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
-pencere-editor = { git = "https://github.com/bateri/pencere", rev = "bf6f801" }
+pencere-sandbox = { git = "https://github.com/bateri/pencere", rev = "bf6f8018fce9a62a3b395de64fd0e8a5d479374a" }
+pencere-view = { git = "https://github.com/bateri/pencere", rev = "bf6f8018fce9a62a3b395de64fd0e8a5d479374a" }
+pencere-editor = { git = "https://github.com/bateri/pencere", rev = "bf6f8018fce9a62a3b395de64fd0e8a5d479374a" }
 # Pictures of the page for the eye (`shot`): the page drawn as the kit lays it out, in the system's
 # fonts, by the rasteriser and the SVG renderer the kit's own sandbox uses.
 resvg = { version = "0.48.1", default-features = false }

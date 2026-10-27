@@ -92,8 +92,10 @@ docker exec -i sqlpen-pg psql -q -U postgres -d shop < demo/postgres.sql
 SQLPEN_TEST_PG=postgres://reader:reader@127.0.0.1:55432/shop make check
 ```
 
-In a terminal that hosts pencere, `pencere dev` runs sqlpen in the pane and shows the page again
-when a file of `src/view/` changes.
+In a terminal that hosts pencere, `make dev` runs sqlpen in the pane on the database
+`$DATABASE_URL` names, and shows the page again when a file of `src/view/` changes. Its `pencere`
+command is built from the pencere `Cargo.lock` pins, fetched into `.cache/pencere`; to run against a
+pencere checkout you are changing, `make dev PENCERE_SRC=../pencere`.
 
 ## License
 
