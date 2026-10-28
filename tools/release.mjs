@@ -304,6 +304,10 @@ function plan() {
   if (tagExists(tagOf(version)) && !resume) {
     console.error(`${tagOf(version)} exists: nothing to release`);
     release = false;
+  } else if (!resume && !sections().some((s) => RELEASED.test(s.heading))) {
+    // Never released, and no release prepared: a push of the work before the first one.
+    console.error("CHANGELOG.md has no release section yet: nothing to release");
+    release = false;
   } else {
     const { tag } = versionChecks();
     if (tagExists(tag)) {

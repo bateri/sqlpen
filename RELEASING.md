@@ -39,6 +39,7 @@ downloaded ready-made. `make rehearse` says which pencere it is.
 3. If the version has no tag yet, the workflow checks the version and changelog, builds the three
    files, sums them, checks them and records their provenance, pushes the tag, and writes a
    **draft** GitHub release.
+   Before the first release, while the changelog has no release section, a push releases nothing.
 4. The run waits in the `release` environment. GitHub notifies the reviewers; one of them opens
    the run and chooses **Review deployments → Approve**. The workflow then checks the files again
    and makes the draft public as **Latest**. Rejected, nothing is published.
