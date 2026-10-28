@@ -510,7 +510,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -999,7 +999,7 @@ dependencies = [
 [[package]]
 name = "pencere"
 version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=bf6f8018fce9a62a3b395de64fd0e8a5d479374a#bf6f8018fce9a62a3b395de64fd0e8a5d479374a"
+source = "git+https://github.com/bateri/pencere?rev=824f75acea0308a581b2a6c264d58db5ba9bd4c3#824f75acea0308a581b2a6c264d58db5ba9bd4c3"
 dependencies = [
  "libc",
  "pencere-wire",
@@ -1010,7 +1010,7 @@ dependencies = [
 [[package]]
 name = "pencere-editor"
 version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=bf6f8018fce9a62a3b395de64fd0e8a5d479374a#bf6f8018fce9a62a3b395de64fd0e8a5d479374a"
+source = "git+https://github.com/bateri/pencere?rev=824f75acea0308a581b2a6c264d58db5ba9bd4c3#824f75acea0308a581b2a6c264d58db5ba9bd4c3"
 dependencies = [
  "pencere-view",
  "regex",
@@ -1021,11 +1021,12 @@ dependencies = [
 [[package]]
 name = "pencere-sandbox"
 version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=bf6f8018fce9a62a3b395de64fd0e8a5d479374a#bf6f8018fce9a62a3b395de64fd0e8a5d479374a"
+source = "git+https://github.com/bateri/pencere?rev=824f75acea0308a581b2a6c264d58db5ba9bd4c3#824f75acea0308a581b2a6c264d58db5ba9bd4c3"
 dependencies = [
  "pencere-view",
  "pencere-wire",
  "png",
+ "regex",
  "resvg",
  "wasmtime",
  "zune-core",
@@ -1035,7 +1036,7 @@ dependencies = [
 [[package]]
 name = "pencere-view"
 version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=bf6f8018fce9a62a3b395de64fd0e8a5d479374a#bf6f8018fce9a62a3b395de64fd0e8a5d479374a"
+source = "git+https://github.com/bateri/pencere?rev=824f75acea0308a581b2a6c264d58db5ba9bd4c3#824f75acea0308a581b2a6c264d58db5ba9bd4c3"
 dependencies = [
  "taffy",
 ]
@@ -1043,7 +1044,7 @@ dependencies = [
 [[package]]
 name = "pencere-wire"
 version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=bf6f8018fce9a62a3b395de64fd0e8a5d479374a#bf6f8018fce9a62a3b395de64fd0e8a5d479374a"
+source = "git+https://github.com/bateri/pencere?rev=824f75acea0308a581b2a6c264d58db5ba9bd4c3#824f75acea0308a581b2a6c264d58db5ba9bd4c3"
 dependencies = [
  "serde",
  "serde_json",
@@ -1373,7 +1374,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2344,7 +2345,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
