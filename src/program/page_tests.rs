@@ -115,7 +115,7 @@ impl Rig {
             bundle: Some(Arc::new(files)),
         };
         // A call of the page may be held to less than the floor's 250 ms, to see how near it comes.
-        let mut limits = ModuleLimits::default();
+        let mut limits = ModuleLimits::floor();
         if let Some(ms) = std::env::var("SQLPEN_CALL_MS")
             .ok()
             .and_then(|ms| ms.parse().ok())
@@ -385,7 +385,12 @@ impl Rig {
         }
         let laid = laid.expect("laid out");
         let list = laid.paint(&mut fonts);
-        let list = self.editors.paint(list, &mut fonts, true);
+        let list = self.editors.paint(
+            list,
+            &mut fonts,
+            pencere_editor::CaretPhase::Lit,
+            &mut |_| Vec::new(),
+        );
         crate::shot::png(
             &list,
             &mut fonts,
@@ -890,6 +895,8 @@ fn the_pointer_over_the_editor_is_a_place_to_type_after_the_divider_made_it_a_re
         place: pencere_view::Place {
             editor: Id::named(SQL),
             at: 3,
+            inside: false,
+            version: 0,
         },
     });
     rig.run();
