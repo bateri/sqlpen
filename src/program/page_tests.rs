@@ -8,12 +8,12 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use pencere_editor::{EditorEvent, Editors, Route};
-use pencere_sandbox::{Assets, Module, ModuleLimits, Script, Unbounded, Update};
-use pencere_view::edit::{Mark, TextSnapshot};
+use pencere_sandbox::{Assets, Module, ModuleLimits, Program, Script, Unbounded, Update};
+use pencere_view::edit::{CaretMotion, CaretShape, CaretUnfocused, Mark, TextSnapshot};
 use pencere_view::wire::Kind;
 use pencere_view::{
     Element, Event, Font, Id, Input, Key, Keyboard, Laid, Measure, Metrics, Mods, Point, Scrolls,
-    Size, layout,
+    Size, TerminalCaret, TerminalLook, TerminalSelection, layout,
 };
 use serde_json::{Value, json};
 
@@ -67,6 +67,45 @@ impl Measure for Fixed {
     }
 }
 
+/// A host that says how its terminal draws its cursor and its selection, which the person can change.
+#[derive(Clone, Default)]
+struct Terminal(Arc<Mutex<TerminalLook>>);
+
+impl Terminal {
+    fn set(&self, look: TerminalLook) {
+        *self.0.lock().unwrap() = look;
+    }
+}
+
+impl Program for Terminal {
+    fn may_say(&self, _bytes: usize) -> bool {
+        true
+    }
+
+    fn taken(&self, _bytes: usize) {}
+
+    fn terminal_look(&self) -> TerminalLook {
+        *self.0.lock().unwrap()
+    }
+}
+
+/// The look of bateri's terminal, as its settings say it: a beam with a light that glides.
+fn bateri() -> TerminalLook {
+    TerminalLook {
+        caret: TerminalCaret {
+            shape: Some(CaretShape::Bar),
+            width: Some(1.5),
+            radius: Some(0.125),
+            glow: Some(1.0),
+            blink: Some(true),
+            blink_interval: Some(0.5),
+            unfocused: Some(CaretUnfocused::Hollow),
+            motion: Some(CaretMotion::Spring(30.0)),
+        },
+        selection: TerminalSelection { radius: Some(0.3) },
+    }
+}
+
 struct Rig {
     module: Module,
     woken: Receiver<()>,
@@ -101,6 +140,16 @@ impl Rig {
 
     /// The page with `options` put in its editor's (for the kit's options of how an editor looks).
     fn open_with(size: Size, db: Db, options: &str) -> Self {
+        Self::open_in(size, db, options, Arc::new(Unbounded))
+    }
+
+    /// The page in a terminal that says how it draws its cursor and its selection.
+    fn open_in_terminal(size: Size, terminal: &Terminal) -> Self {
+        let db = Db::Sqlite(Sqlite::demo(false).unwrap());
+        Self::open_in(size, db, "", Arc::new(terminal.clone()))
+    }
+
+    fn open_in(size: Size, db: Db, options: &str, host: Arc<dyn Program>) -> Self {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let files = Files(root.clone());
         let page = std::fs::read_to_string(root.join("src/view/page.lua")).unwrap();
@@ -122,7 +171,7 @@ impl Rig {
         {
             limits.call = Duration::from_millis(ms);
         }
-        let module = Module::from_script(script, limits, Arc::new(Unbounded), move || {
+        let module = Module::from_script(script, limits, host, move || {
             let _ = told.lock().map(|told| told.send(()));
         });
         let mut rig = Self {
@@ -745,6 +794,69 @@ fn words_after_characters_of_more_than_one_byte_are_coloured_where_they_are() {
     // A name that is no keyword is left as it is, and so is the space between.
     let (from, to) = range("ürünler");
     assert!(styled(from, to).is_empty(), "{:?}", styled(from, to));
+}
+
+/// The editor's caret and selection are the terminal's where it says how, and not the kit's.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn the_editor_draws_its_cursor_and_its_selection_as_the_terminal_does() {
+    let terminal = Terminal::default();
+    terminal.set(bateri());
+    let rig = Rig::open_in_terminal(WIDE, &terminal);
+    let options = rig.editors.buffer(Id::named(SQL)).unwrap().options();
+    assert_eq!(options.caret.shape, CaretShape::Bar);
+    assert!(
+        (options.caret.radius - 0.125).abs() < 1e-6,
+        "{:?}",
+        options.caret
+    );
+    assert!(options.caret.blink, "{:?}", options.caret);
+    assert_eq!(options.caret.motion, CaretMotion::Spring(30.0));
+    assert_eq!(options.caret.unfocused, CaretUnfocused::Hollow);
+    assert!(
+        (options.selection.radius - 0.3).abs() < 1e-6,
+        "the terminal's own roundness, not the page's: {:?}",
+        options.selection
+    );
+}
+
+/// A terminal that says nothing of its selection still gets one with round corners.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn a_selection_is_round_where_the_terminal_says_nothing_of_it() {
+    let rig = Rig::open(WIDE);
+    let options = rig.editors.buffer(Id::named(SQL)).unwrap().options();
+    assert!(
+        options.selection.radius > 0.0,
+        "square: {:?}",
+        options.selection
+    );
+    // And the terminal says nothing of the caret either: it is the kit's own.
+    assert_eq!(options.caret.shape, CaretShape::default());
+}
+
+/// The person changes the terminal's cursor: the editor is drawn with it at once.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn a_change_of_the_terminals_cursor_reaches_the_editor() {
+    let terminal = Terminal::default();
+    terminal.set(bateri());
+    let mut rig = Rig::open_in_terminal(WIDE, &terminal);
+    let mut look = bateri();
+    look.caret.shape = Some(CaretShape::Underline);
+    look.caret.blink = Some(false);
+    look.selection.radius = Some(0.0);
+    terminal.set(look);
+    rig.module.event(Event::TerminalLook);
+    rig.run();
+    let options = rig.editors.buffer(Id::named(SQL)).unwrap().options();
+    assert_eq!(options.caret.shape, CaretShape::Underline);
+    assert!(!options.caret.blink, "{:?}", options.caret);
+    assert!(
+        options.selection.radius.abs() < 1e-6,
+        "a terminal whose selection is square says so: {:?}",
+        options.selection
+    );
 }
 
 /// One edit that changes the text in several places, one of them in a run of characters of more than

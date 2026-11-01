@@ -11,6 +11,7 @@ local schema = require("./parts/schema")
 local grid = require("./parts/grid")
 local plan = require("./parts/plan")
 local inspect = require("./parts/inspect")
+local terminal = require("@pencere/terminal")
 
 local b, ui, S, SIZE = kit.b, kit.ui, kit.S, kit.SIZE
 local layout = b.layout
@@ -21,6 +22,10 @@ local SPLIT = "split"
 
 -- How many completions the popup shows at once.
 local SHOWN = 8
+
+-- How round the corners of a selection are, a fraction of a row's height, where the terminal says
+-- nothing of its own: the radius bateri's terminal draws its selection with.
+local SELECTION_RADIUS = 0.22
 
 -- --- The editor's language ---------------------------------------------------------------------
 
@@ -489,8 +494,13 @@ local function header(narrow)
 	return row
 end
 
-local function editor_view()
-	local options = {
+-- The editor's options: what this page decides, and the caret and the selection as the person's
+-- terminal draws them where the terminal says how (the shape, the roundness, the light, the blinking
+-- and the gliding of its cursor, and the roundness of its selection): the page writes none of them,
+-- so that the editor looks like the terminal around it. Read at each frame, so that a change in the
+-- terminal's settings is there at the next (`terminal_look`).
+local function editor_options()
+	local options = terminal.editor({
 		comment = "--",
 		pairs = "()''\"\"",
 		hint = "Write SQL here",
@@ -502,7 +512,19 @@ local function editor_view()
 		scroll_margin = 3,
 		-- The caret's line across the gutter and the text, as Zed and VS Code draw it.
 		current_line = "all",
-	}
+	})
+	-- A terminal that says nothing of its selection (one with no such setting) still has its corners
+	-- round: a selection is a shape, and square ones are the exception.
+	local selection = options.selection or {}
+	if selection.radius == nil then
+		selection.radius = SELECTION_RADIUS
+	end
+	options.selection = selection
+	return options
+end
+
+local function editor_view()
+	local options = editor_options()
 	local editor = b.editor(SQL, options):grow(1):min_h(0):bg("background")
 	if S.focus == "editor" then
 		editor:focused(true)
@@ -1130,6 +1152,10 @@ local function handle(event)
 		return key(event)
 	elseif kind == "command" then
 		return command(event.id)
+	elseif kind == "terminal_look" then
+		-- The person changed how their terminal draws its cursor or its selection: the editor is
+		-- asked for again with it (`editor_options` reads it).
+		return true
 	elseif kind == "focus" then
 		if event.field == SQL then
 			S.focus = "editor"
