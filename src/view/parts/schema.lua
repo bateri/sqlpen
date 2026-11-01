@@ -105,7 +105,7 @@ function M.view(width)
 	if S.schema_error then
 		list:child(b.div():p(12):child(b.text(S.schema_error):wrap():color("error")))
 	elseif #S.tables == 0 then
-		list:child(b.div():p(12):child(b.text(S.info and "No tables here yet." or "Reading the database…"):color("dim")))
+		list:child(b.div():p(12):child(b.text(S.info and "No tables here yet." or "Reading the database"):color("dim")))
 	end
 	for _, entry in S.tables do
 		if many and entry.schema ~= last_schema then

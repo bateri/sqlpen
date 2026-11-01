@@ -493,7 +493,7 @@ local function editor_view()
 	local options = {
 		comment = "--",
 		pairs = "()''\"\"",
-		hint = "Write SQL here…",
+		hint = "Write SQL here",
 		tab_width = 2,
 		-- Rows as airy as the rest of the page's: SQL here is read more than it is typed.
 		line_height = 1.7,

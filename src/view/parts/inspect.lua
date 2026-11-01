@@ -78,7 +78,7 @@ function M.view(width, height)
 	local open = S.inspect
 	local body = b.div():id("inspect-body"):col():grow(1):min_h(0):scroll():p(14):family("terminal"):text_size(12)
 	if open.loading then
-		body:child(b.text("Reading the value…"):color("dim"))
+		body:child(b.text("Reading the value"):color("dim"))
 	elseif open.value == nil then
 		body:child(b.text("NULL"):italic():color("quiet"))
 	else
