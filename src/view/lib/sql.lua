@@ -45,76 +45,104 @@ M.LOOKS = {
 	param = { color = "info", italic = true },
 }
 
--- The characters of a text, one string each.
-local function chars_of(text)
-	local chars = {}
-	for _, code in utf8.codes(text) do
-		chars[#chars + 1] = utf8.char(code)
-	end
-	return chars
-end
-M.chars_of = chars_of
+-- Places are the kit's: a byte of the text, counted from 1, and a range `[from, to)` whose end is not
+-- in it, so that `string.sub(text, from, to - 1)` is what it holds (the kit's specification, §2.7).
+-- Everything here reads the bytes of the text as they are: the bytes of a character that is more than
+-- one are all 128 or more, none of them is a quote, a `;` or a space, and in a name they count as letters.
 
--- The words of a line and what each is: { from =, to =, kind = } in characters from 0 of the line.
--- A line is read alone: a string or a comment that goes on to the next line is not followed there.
+local function is_digit(byte)
+	return byte >= 48 and byte <= 57
+end
+
+local function is_letter(byte)
+	return (byte >= 65 and byte <= 90) or (byte >= 97 and byte <= 122) or byte == 95
+end
+
+-- A byte of a word: a letter, a digit, `_`, or a part of a character that is more than one byte.
+local function is_word(byte)
+	return is_letter(byte) or is_digit(byte) or byte >= 128
+end
+
+local function is_space(byte)
+	return byte == 32 or (byte >= 9 and byte <= 13)
+end
+
+local DOLLAR, COLON, QUESTION, DASH, SLASH, STAR = 36, 58, 63, 45, 47, 42
+local QUOTE, DOUBLE, TICK, SEMI, NEWLINE, DOT = 39, 34, 96, 59, 10, 46
+
+-- The words of a line and what each is: { from =, to =, kind = } in bytes of the line from 1, the
+-- end not in it. A line is read alone: a string or a comment that goes on to the next line is not
+-- followed there.
 function M.lex(line)
 	local tokens = {}
-	local chars = chars_of(line)
+	local count = #line
 	local at = 1
-	local count = #chars
 	local function closing(close, from)
 		local finish = from
-		while finish <= count and chars[finish] ~= close do
+		while finish <= count and string.byte(line, finish) ~= close do
 			finish += 1
 		end
 		return math.min(finish, count)
 	end
+	-- A word of `kind` from `at` to `finish`, the last byte in it.
+	local function token(kind, finish)
+		tokens[#tokens + 1] = { from = at, to = finish + 1, kind = kind }
+	end
 	while at <= count do
-		local c = chars[at]
-		local after = chars[at + 1]
-		if c == "-" and after == "-" then
-			tokens[#tokens + 1] = { from = at - 1, to = count, kind = "comment" }
+		local c = string.byte(line, at)
+		local after = string.byte(line, at + 1)
+		if c == DASH and after == DASH then
+			token("comment", count)
 			break
-		elseif c == "/" and after == "*" then
+		elseif c == SLASH and after == STAR then
 			local finish = at + 2
-			while finish < count and not (chars[finish] == "*" and chars[finish + 1] == "/") do
+			while finish < count and not (string.byte(line, finish) == STAR and string.byte(line, finish + 1) == SLASH) do
 				finish += 1
 			end
 			finish = math.min(finish + 1, count)
-			tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "comment" }
+			token("comment", finish)
 			at = finish + 1
-		elseif c == "'" then
-			local finish = closing("'", at + 1)
-			tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "string" }
+		elseif c == QUOTE then
+			local finish = closing(QUOTE, at + 1)
+			token("string", finish)
 			at = finish + 1
-		elseif c == '"' or c == "`" then
+		elseif c == DOUBLE or c == TICK then
 			local finish = closing(c, at + 1)
-			tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "quoted" }
+			token("quoted", finish)
 			at = finish + 1
-		elseif (c == "$" or c == ":" or c == "?") and after and string.match(after, "[%w_]") and (at == 1 or chars[at - 1] ~= ":") then
+		elseif
+			(c == DOLLAR or c == COLON or c == QUESTION)
+			and after
+			and (is_letter(after) or is_digit(after))
+			and (at == 1 or string.byte(line, at - 1) ~= COLON)
+		then
 			local finish = at + 1
-			while finish < count and string.match(chars[finish + 1], "[%w_]") do
+			while finish < count and (is_letter(string.byte(line, finish + 1)) or is_digit(string.byte(line, finish + 1))) do
 				finish += 1
 			end
-			tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "param" }
+			token("param", finish)
 			at = finish + 1
-		elseif string.match(c, "%d") and (at == 1 or not string.match(chars[at - 1], "[%w_]")) then
+		elseif is_digit(c) and (at == 1 or not (is_letter(string.byte(line, at - 1)) or is_digit(string.byte(line, at - 1)))) then
 			local finish = at
-			while finish < count and string.match(chars[finish + 1], "[%d%.eE]") do
+			while finish < count do
+				local next_byte = string.byte(line, finish + 1)
+				if not (is_digit(next_byte) or next_byte == DOT or next_byte == 101 or next_byte == 69) then
+					break
+				end
 				finish += 1
 			end
-			tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "number" }
+			token("number", finish)
 			at = finish + 1
-		elseif string.match(c, "[%a_]") or #c > 1 then
+		elseif is_letter(c) or c >= 128 then
 			local finish = at
-			while finish < count and (string.match(chars[finish + 1], "[%w_]") or #chars[finish + 1] > 1) do
+			while finish < count and is_word(string.byte(line, finish + 1)) do
 				finish += 1
 			end
-			local word = string.lower(table.concat(chars, "", at, finish))
+			local word = string.lower(string.sub(line, at, finish))
 			if IS_KEYWORD[word] then
-				tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "keyword" }
-			elseif IS_FUNCTION[word] and chars[finish + 1] == "(" then
-				tokens[#tokens + 1] = { from = at - 1, to = finish, kind = "func" }
+				token("keyword", finish)
+			elseif IS_FUNCTION[word] and string.byte(line, finish + 1) == 40 then
+				token("func", finish)
 			end
 			at = finish + 1
 		else
@@ -124,44 +152,43 @@ function M.lex(line)
 	return tokens
 end
 
--- The statements of a text: { from =, to = } in characters from 0, the end not in it, each without
--- the space and the `;` around it. A `;` in a string, a quoted name or a comment ends nothing.
+-- The statements of a text: { from =, to = } in bytes from 1, the end not in it, each without the
+-- space and the `;` around it. A `;` in a string, a quoted name or a comment ends nothing.
 function M.statements(text)
-	local chars = chars_of(text)
 	local found = {}
 	local start = 1
 	local at = 1
-	local count = #chars
+	local count = #text
 	local function close(from, to)
-		while from <= to and string.match(chars[from], "%s") do
+		while from <= to and is_space(string.byte(text, from)) do
 			from += 1
 		end
-		while to >= from and string.match(chars[to], "%s") do
+		while to >= from and is_space(string.byte(text, to)) do
 			to -= 1
 		end
 		if from <= to then
-			found[#found + 1] = { from = from - 1, to = to }
+			found[#found + 1] = { from = from, to = to + 1 }
 		end
 	end
 	while at <= count do
-		local c = chars[at]
-		if c == "-" and chars[at + 1] == "-" then
-			while at <= count and chars[at] ~= "\n" do
+		local c = string.byte(text, at)
+		if c == DASH and string.byte(text, at + 1) == DASH then
+			while at <= count and string.byte(text, at) ~= NEWLINE do
 				at += 1
 			end
-		elseif c == "/" and chars[at + 1] == "*" then
+		elseif c == SLASH and string.byte(text, at + 1) == STAR then
 			at += 2
-			while at < count and not (chars[at] == "*" and chars[at + 1] == "/") do
+			while at < count and not (string.byte(text, at) == STAR and string.byte(text, at + 1) == SLASH) do
 				at += 1
 			end
 			at += 2
-		elseif c == "'" or c == '"' or c == "`" then
+		elseif c == QUOTE or c == DOUBLE or c == TICK then
 			at += 1
-			while at <= count and chars[at] ~= c do
+			while at <= count and string.byte(text, at) ~= c do
 				at += 1
 			end
 			at += 1
-		elseif c == ";" then
+		elseif c == SEMI then
 			close(start, at - 1)
 			start = at + 1
 			at += 1
@@ -170,24 +197,25 @@ function M.statements(text)
 		end
 	end
 	close(start, count)
-	return found, chars
+	return found
 end
 
--- Whether the statement from `from` to `to` of `chars` is nothing but comments.
-local function only_comments(chars, from, to)
-	local text = table.concat(chars, "", from + 1, to)
-	text = string.gsub(text, "%-%-[^\n]*", "")
-	text = string.gsub(text, "/%*.-%*/", "")
-	return string.match(text, "^%s*$") ~= nil
+-- Whether the statement from `from` to `to` (the end not in it) of `text` is nothing but comments.
+local function only_comments(text, from, to)
+	local body = string.sub(text, from, to - 1)
+	body = string.gsub(body, "%-%-[^\n]*", "")
+	body = string.gsub(body, "/%*.-%*/", "")
+	return string.match(body, "^%s*$") ~= nil
 end
 
--- The statement the caret at `caret` is in, or the one just before it (a caret after the `;`, or on
--- the empty line after a statement): { from =, to =, text = }; nil in a text of no statement.
+-- The statement the caret at `caret` (a place) is in, or the one just before it (a caret after the
+-- `;`, or on the empty line after a statement): { from =, to =, text = }; nil in a text of no
+-- statement.
 function M.statement_at(text, caret)
-	local found, chars = M.statements(text)
+	local found = M.statements(text)
 	local best = nil
 	for _, statement in found do
-		if not only_comments(chars, statement.from, statement.to) then
+		if not only_comments(text, statement.from, statement.to) then
 			if statement.from <= caret and caret <= statement.to + 1 then
 				best = statement
 				break
@@ -198,7 +226,7 @@ function M.statement_at(text, caret)
 	end
 	if best == nil then
 		for _, statement in found do
-			if not only_comments(chars, statement.from, statement.to) then
+			if not only_comments(text, statement.from, statement.to) then
 				best = statement
 				break
 			end
@@ -208,28 +236,33 @@ function M.statement_at(text, caret)
 		return nil
 	end
 	-- The comments before a statement are not sent: a mistake's place is counted from its first word.
-	local from = best.from + 1
-	while from <= best.to do
-		if chars[from] == "-" and chars[from + 1] == "-" then
-			while from <= best.to and chars[from] ~= "\n" do
+	local from = best.from
+	while from < best.to do
+		if string.byte(text, from) == DASH and string.byte(text, from + 1) == DASH then
+			while from < best.to and string.byte(text, from) ~= NEWLINE do
 				from += 1
 			end
-		elseif string.match(chars[from], "%s") then
+		elseif is_space(string.byte(text, from)) then
 			from += 1
 		else
 			break
 		end
 	end
-	return { from = from - 1, to = best.to, text = table.concat(chars, "", from, best.to) }
+	return { from = from, to = best.to, text = string.sub(text, from, best.to - 1) }
 end
 
--- The end of the word that starts at `at` in `chars` (from 0): where a mistake's mark ends.
-function M.word_end(chars, at)
-	local finish = at + 1
-	while finish <= #chars and (string.match(chars[finish], "[%w_%.]") or #chars[finish] > 1) do
+-- The end of the word that starts at the place `at` of `text`: where a mistake's mark ends (the end
+-- is not in the mark, and the mark is a byte at least).
+function M.word_end(text, at)
+	local finish = at
+	while finish <= #text do
+		local byte = string.byte(text, finish)
+		if not (is_letter(byte) or is_digit(byte) or byte == DOT or byte >= 128) then
+			break
+		end
 		finish += 1
 	end
-	return math.max(finish - 1, at + 1)
+	return math.max(finish, at + 1)
 end
 
 -- --- Completions -------------------------------------------------------------------------------
@@ -237,17 +270,17 @@ end
 -- Whether the end of `line` (the text of a line up to the caret) is in a string, a quoted name or a
 -- comment: nothing is completed there.
 function M.in_words(line)
-	local chars = chars_of(line)
-	local count = #chars
+	local count = #line
 	for _, token in M.lex(line) do
-		if token.to == count then
+		if token.to == count + 1 then
+			local size = token.to - token.from
 			if token.kind == "comment" then
 				-- A `--` comment goes to the end of the line; a `/* */` one is behind a caret after it.
-				return not (chars[1 + token.from] == "/" and count - token.from >= 4 and chars[count - 1] == "*" and chars[count] == "/")
+				return not (string.byte(line, token.from) == SLASH and size >= 4 and string.sub(line, -2) == "*/")
 			elseif token.kind == "string" or token.kind == "quoted" then
 				-- The opening quote alone, or no closing one: the caret is inside.
-				local quote = chars[1 + token.from]
-				return not (count - token.from >= 2 and chars[count] == quote)
+				local quote = string.byte(line, token.from)
+				return not (size >= 2 and string.byte(line, count) == quote)
 			end
 		end
 	end
@@ -283,7 +316,7 @@ local function table_named(tables, name)
 end
 
 -- What may be written at the caret: `before` is the text of the statement up to the caret, `tables`
--- the schema. { from = (characters back from the caret where the word starts), word =, items = {
+-- the schema. { from = (bytes back from the caret where the word starts), word =, items = {
 -- { word =, kind =, detail = } } }, or nil where nothing is to be offered.
 function M.complete(before, tables, forced)
 	local word = string.match(before, "([%a_][%w_]*)$") or ""
@@ -352,7 +385,7 @@ function M.complete(before, tables, forced)
 				end
 			end
 		end
-		return #items > 0 and { from = utf8.len(word), word = word, items = sorted() } or nil
+		return #items > 0 and { from = #word, word = word, items = sorted() } or nil
 	end
 	local previous = string.lower(string.match(rest, "([%a_]+)%s*$") or "")
 	local wants_table = previous == "from" or previous == "join" or previous == "into" or previous == "update" or previous == "table"
@@ -387,7 +420,7 @@ function M.complete(before, tables, forced)
 	if #items == 0 then
 		return nil
 	end
-	return { from = utf8.len(word), word = word, items = sorted() }
+	return { from = #word, word = word, items = sorted() }
 end
 
 -- A count in few characters: 950, 12.4k, 3.2M.

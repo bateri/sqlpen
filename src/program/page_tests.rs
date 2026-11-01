@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use pencere_editor::{EditorEvent, Editors, Route};
 use pencere_sandbox::{Assets, Module, ModuleLimits, Script, Unbounded, Update};
-use pencere_view::edit::TextSnapshot;
+use pencere_view::edit::{Mark, TextSnapshot};
 use pencere_view::wire::Kind;
 use pencere_view::{
     Element, Event, Font, Id, Input, Key, Keyboard, Laid, Measure, Metrics, Mods, Point, Scrolls,
@@ -347,7 +347,8 @@ impl Rig {
         self.run();
     }
 
-    /// Puts the caret at `at` of the editor's text, as a click there would.
+    /// Puts the caret at `at` of the editor's text (a byte of it, as the page's places are), as a
+    /// click there would.
     fn caret_to(&mut self, at: usize) {
         let laid = Arc::clone(&self.laid);
         let ask = pencere_view::edit::EditorAsk::Select {
@@ -426,7 +427,7 @@ impl Rig {
         self.run();
     }
 
-    /// Selects from `from` to `to` of the editor's text.
+    /// Selects from `from` to `to` of the editor's text (bytes of it).
     fn select(&mut self, from: usize, to: usize) {
         let laid = Arc::clone(&self.laid);
         let ask = pencere_view::edit::EditorAsk::Select {
@@ -601,13 +602,14 @@ fn the_statement_under_the_caret_runs_and_its_rows_fill_the_grid() {
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn a_mistake_is_said_and_marked_where_the_database_points() {
     let mut rig = Rig::open(WIDE);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     rig.type_text("select nme from customers;");
     rig.command("run");
     assert!(rig.says("It did not run"), "{:?}", rig.words());
     assert!(rig.says("nme"));
-    // The mark is in the editor, on `nme` of the statement.
+    // The mark is in the editor, on `nme` of the statement. The editor holds characters (it is the
+    // page's places that are bytes), and finds its decorations by them.
     let text = rig.text();
     let at = text[..text.rfind("nme").unwrap()].chars().count();
     let buffer = rig.editors.buffer(Id::named(SQL)).unwrap();
@@ -620,11 +622,178 @@ fn a_mistake_is_said_and_marked_where_the_database_points() {
     );
 }
 
+/// `ş` and `ü` are two bytes, `⌘` three: the places the kit says are bytes, what the person reads
+/// (a column, a mark) are characters, and the page turns one into the other.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn characters_of_more_than_one_byte_are_bytes_to_the_kit_and_columns_to_the_person() {
+    let mut rig = Rig::open(WIDE);
+    let end = rig.text().len();
+    rig.caret_to(end);
+    rig.type_text("-- çay şeker\nselect 'şeker ⌘', nme from customers;");
+    let last = rig.text().lines().last().unwrap().to_owned();
+    assert!(
+        rig.says(&format!(", Col {}", last.chars().count() + 1)),
+        "the column counts characters: {:?}",
+        rig.words()
+    );
+    rig.command("run");
+    assert!(rig.says("It did not run"), "{:?}", rig.words());
+    // The mark is on `nme`, though the database counts characters and the kit bytes.
+    let text = rig.text();
+    let at = text[..text.rfind("nme").unwrap()].chars().count();
+    let buffer = rig.editors.buffer(Id::named(SQL)).unwrap();
+    let marked = buffer.decorations_in(at, at + 3);
+    assert!(
+        marked
+            .iter()
+            .any(|(_, decoration)| format!("{decoration:?}").contains("Wavy")),
+        "{marked:?}"
+    );
+    // And nowhere before it: the words before `nme` are not marked.
+    let before = text[..text.rfind("nme").unwrap()].chars().count();
+    assert!(
+        buffer
+            .decorations_in(before - 6, before)
+            .iter()
+            .all(|(_, decoration)| !format!("{decoration:?}").contains("Wavy")),
+        "the mark starts where the database pointed"
+    );
+}
+
+/// A caret just after a character of more than one byte is a place whose byte before is the middle
+/// of it, which the kit refuses to read: the page reads from the start of the line instead.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn a_caret_after_a_character_of_more_than_one_byte_is_read_and_completes() {
+    let mut rig = Rig::open(WIDE);
+    let end = rig.text().len();
+    rig.caret_to(end);
+    rig.type_letters("select ş");
+    rig.command("complete");
+    assert!(
+        rig.says("select") || rig.says("orders"),
+        "nothing fell: {:?}",
+        rig.words()
+    );
+    rig.key(Key::Escape, Mods::default());
+    rig.type_letters(" from ord");
+    assert!(rig.says("orders"), "{:?}", rig.words());
+    let route = rig.key(Key::Tab, Mods::default());
+    assert!(matches!(route, Route::Command(_)), "{route:?}");
+    assert!(
+        rig.text().ends_with("select ş from orders"),
+        "{:?}",
+        rig.text()
+    );
+}
+
+/// A statement that ends in a character of more than one byte folds, and the one before it too: the
+/// end of a statement is a place, never the middle of a character.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn statements_that_end_in_a_character_of_more_than_one_byte_fold() {
+    let mut rig = Rig::open(WIDE);
+    let end = rig.text().len();
+    rig.caret_to(end);
+    rig.type_text("select 1\nfrom ürün;\nselect 'ğ'\nfrom ş");
+    let text = rig.text();
+    let buffer = rig.editors.buffer(Id::named(SQL)).unwrap();
+    // The editor holds characters: where the last word of each statement is, as it counts.
+    for needle in ["ürün", "from ş"] {
+        let at = text[..text.rfind(needle).unwrap()].chars().count();
+        let folds: Vec<_> = buffer
+            .decorations_in(at, at + 1)
+            .into_iter()
+            .filter(|(_, decoration)| format!("{decoration:?}").contains("Fold"))
+            .collect();
+        assert!(!folds.is_empty(), "no fold over {needle:?}");
+    }
+}
+
+/// The words of a line are coloured where they are, after characters of more than one byte in it:
+/// the lexer reads the line's bytes and the page's asks say bytes, while the editor holds characters.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn words_after_characters_of_more_than_one_byte_are_coloured_where_they_are() {
+    let mut rig = Rig::open(WIDE);
+    let end = rig.text().len();
+    rig.caret_to(end);
+    rig.type_text("select 'şeker ⌘' from ürünler where id = 12");
+    let text = rig.text();
+    let buffer = rig.editors.buffer(Id::named(SQL)).unwrap();
+    let range = |word: &str| {
+        let at = text[..text.rfind(word).unwrap()].chars().count();
+        (at, at + word.chars().count())
+    };
+    let styled = |from: usize, to: usize| {
+        buffer
+            .decorations_in(from, to)
+            .into_iter()
+            .filter(|(_, decoration)| matches!(decoration.mark, Mark::Style(_)))
+            .map(|(_, decoration)| (decoration.from, decoration.to))
+            .collect::<Vec<_>>()
+    };
+    for word in ["select", "'şeker ⌘'", "from", "where", "12"] {
+        let (from, to) = range(word);
+        assert!(
+            styled(from, to).contains(&(from, to)),
+            "{word:?} is not coloured over {from}..{to}: {:?}",
+            styled(from, to)
+        );
+    }
+    // A name that is no keyword is left as it is, and so is the space between.
+    let (from, to) = range("ürünler");
+    assert!(styled(from, to).is_empty(), "{:?}", styled(from, to));
+}
+
+/// One edit that changes the text in several places, one of them in a run of characters of more than
+/// one byte. The editor tells its changes in the places of the text before, first the one nearest the
+/// start, so that the page may read the place of the first in the text as it is (nothing before it
+/// has changed): a place of a later one would be moved by the bytes the first put in, into the middle
+/// of a character here.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn an_edit_in_several_places_at_once_does_not_trip_on_characters_of_more_than_one_byte() {
+    let mut rig = Rig::open(WIDE);
+    let end = rig.text().len();
+    rig.caret_to(end);
+    rig.type_text("-- çççççççççç\n");
+    let text = rig.text();
+    let early = text.find("from orders o").unwrap();
+    // Between the fifth and the sixth `ç` of the run: a place where a character starts.
+    let late = text.find("çççççççççç").unwrap() + 10;
+    let laid = Arc::clone(&rig.laid);
+    let ask = pencere_view::edit::EditorAsk::Select {
+        ranges: [late, early]
+            .iter()
+            .map(|&at| pencere_view::edit::Range {
+                anchor: at,
+                head: at,
+            })
+            .collect(),
+        version: rig.editors.buffer(Id::named(SQL)).unwrap().version(),
+        main: 0,
+    };
+    rig.editors
+        .ask(&laid, Id::named(SQL), ask, &mut Fixed, rig.now);
+    rig.run();
+    // One byte at each caret: the early one moves the late one by a byte.
+    rig.type_text("a");
+    assert!(
+        rig.text().contains("ççççça") && rig.text().contains("afrom orders o"),
+        "both carets typed: {:?}",
+        rig.text()
+    );
+    // And the page goes on: its column and its colours are still drawn.
+    assert!(rig.says("Ln "), "{:?}", rig.words());
+}
+
 #[test]
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn a_word_is_completed_with_the_databases_own_names() {
     let mut rig = Rig::open(WIDE);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     // A person types a letter at a time.
     for letter in "select * from ord".chars() {
@@ -713,7 +882,7 @@ fn rows_far_down_a_long_result_are_read_as_they_come_into_view() {
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn a_wide_result_comes_in_messages_the_page_reads_in_its_time() {
     let mut rig = Rig::open(WIDE);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     let columns: Vec<String> = (1..=20)
         .map(|n| format!("payload || payload || payload as p{n}"))
@@ -730,7 +899,7 @@ fn a_wide_result_comes_in_messages_the_page_reads_in_its_time() {
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn tab_after_a_word_completes_it_and_elsewhere_indents() {
     let mut rig = Rig::open(WIDE);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     rig.type_letters("select * from revenue_b");
     rig.key(Key::Escape, Mods::default());
@@ -754,7 +923,7 @@ fn tab_after_a_word_completes_it_and_elsewhere_indents() {
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn nothing_is_completed_in_a_string() {
     let mut rig = Rig::open(WIDE);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     rig.type_letters("select 'ord");
     assert!(!rig.says("Tab or Enter puts it in"), "{:?}", rig.words());
@@ -766,11 +935,7 @@ fn what_is_selected_is_what_runs() {
     let mut rig = Rig::open(WIDE);
     let text = rig.text();
     let from = text.find("select * from revenue_by_month").unwrap();
-    let from = text[..from].chars().count();
-    rig.select(
-        from,
-        from + "select * from revenue_by_month".chars().count(),
-    );
+    rig.select(from, from + "select * from revenue_by_month".len());
     rig.key(Key::Enter, cmd());
     let run = rig
         .asked
@@ -792,7 +957,7 @@ fn a_postgres_table_off_the_path_is_completed_with_its_schema_and_runs() {
         crate::db::postgres::Postgres::connect(&address, false).unwrap(),
     ));
     let mut rig = Rig::open_on(WIDE, db);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     rig.type_letters("select * from cust");
     assert!(rig.says("shop.customers"), "{:?}", rig.words());
@@ -826,7 +991,7 @@ fn a_postgres_table_named_without_its_schema_says_where_it_is() {
         crate::db::postgres::Postgres::connect(&address, false).unwrap(),
     ));
     let mut rig = Rig::open_on(WIDE, db);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     rig.type_text("select * from customers;");
     rig.command("run");
@@ -844,7 +1009,7 @@ fn a_postgres_table_named_without_its_schema_says_where_it_is() {
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn the_header_goes_across_with_the_rows_in_the_same_frame_and_stays_when_they_go_down() {
     let mut rig = Rig::open(WIDE);
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     let columns: Vec<String> = (1..=12).map(|n| format!("payload as p{n}")).collect();
     rig.type_text(&format!("select {} from events;", columns.join(", ")));
@@ -947,11 +1112,9 @@ fn shots() {
     let mut rig = Rig::open(WIDE);
     rig.press("table:main.products", 2);
     rig.shot("grid");
-    // Places in the editor are characters, `find` gives bytes, and the starter text has `·` and `⌘`.
-    let place = |rig: &Rig, needle: &str| {
-        let text = rig.text();
-        text[..text.find(needle).unwrap()].chars().count()
-    };
+    // The places the page and its asks say are bytes of the text, as `find` gives them (the starter
+    // text has `·` and `⌘`, which are more than one).
+    let place = |rig: &Rig, needle: &str| rig.text().find(needle).unwrap();
     rig.caret_to(place(&rig, "customers c on") + 4);
     rig.shot("caret");
     // A selection over three rows, and the first statement folded: the bands meet, the marker
@@ -962,7 +1125,7 @@ fn shots() {
     rig.fold();
     rig.shot("folded");
     rig.fold();
-    let end = rig.text().chars().count();
+    let end = rig.text().len();
     rig.caret_to(end);
     rig.type_letters("select * from ord");
     rig.shot("completions");
@@ -984,10 +1147,7 @@ fn shots() {
            caret = { shape = "block", color = "accent" },
            colors = { current_line = { "accent", 0.08 }, current_number = "accent" },"#,
     );
-    let at = {
-        let text = looks.text();
-        text[..text.find("customers c on").unwrap()].chars().count()
-    };
+    let at = looks.text().find("customers c on").unwrap();
     looks.caret_to(at);
     looks.shot("looks");
     let mut narrow = Rig::open(NARROW);

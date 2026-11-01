@@ -17,12 +17,17 @@ local S = {
 	schema_error = nil,
 	-- The tables opened in the list, by "schema.name".
 	open = {},
-	-- The editor: the version it was last told of, the main caret, whether an input method composes.
+	-- The editor: the version it was last told of, the main caret (a place: a byte of its text, from 1,
+	-- as the kit counts), the version that place is of and where it stands (line and column, from 1),
+	-- whether an input method composes, and the lines in view (from 1).
 	version = 0,
-	caret = 0,
+	caret = 1,
+	caret_version = nil,
+	line = 1,
+	column = 1,
 	composing = false,
-	first_line = 0,
-	last_line = 0,
+	first_line = 1,
+	last_line = 1,
 	loaded = false,
 	-- The version a person's typing came to, while what they typed is a word: completions follow it.
 	typed = nil,

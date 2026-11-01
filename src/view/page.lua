@@ -24,29 +24,30 @@ local SHOWN = 8
 
 -- --- The editor's language ---------------------------------------------------------------------
 
--- The colours of the lines `from` to `to` (from 0), as one ask of the layer "syntax".
+-- The colours of the lines `from` to `to` (from 1), as one ask of the layer "syntax".
 local function colour(from, to)
 	local lines = layout.editor_lines(SQL)
 	if not lines or lines == 0 then
 		return nil
 	end
-	to = math.min(to, lines - 1)
-	from = math.max(from, 0)
+	to = math.min(to, lines)
+	from = math.max(from, 1)
 	if from > to then
 		return nil
 	end
 	local length = layout.editor_length(SQL)
-	local start = layout.line_start(SQL, from)
-	local finish = (to + 1 < lines) and (layout.line_start(SQL, to + 1) - 1) or length
+	-- Where the text of a line ends: before its line break, or the end of the text.
+	local function after(line)
+		return (line < lines) and (layout.line_start(SQL, line + 1) - 1) or (length + 1)
+	end
 	local decorations = {}
 	for line = from, to do
 		local base = layout.line_start(SQL, line)
-		local after = (line + 1 < lines) and (layout.line_start(SQL, line + 1) - 1) or length
-		for _, token in sql.lex(layout.editor_text(SQL, base, after) or "") do
+		for _, token in sql.lex(layout.editor_text(SQL, base, after(line)) or "") do
 			local look = sql.LOOKS[token.kind]
 			decorations[#decorations + 1] = {
-				from = base + token.from,
-				to = base + token.to,
+				from = base + token.from - 1,
+				to = base + token.to - 1,
 				color = look.color,
 				weight = look.weight,
 				italic = look.italic,
@@ -56,8 +57,8 @@ local function colour(from, to)
 	return {
 		decorate = "syntax",
 		version = layout.editor_version(SQL),
-		from = start,
-		to = finish,
+		from = layout.line_start(SQL, from),
+		to = after(to),
 		decorations = decorations,
 	}
 end
@@ -65,37 +66,47 @@ end
 -- Each statement of more than one line, a region that folds.
 local function folds()
 	local length = layout.editor_length(SQL) or 0
-	local text = layout.editor_text(SQL, 0, length) or ""
+	local text = layout.editor_text(SQL, 1, length + 1) or ""
 	local regions = {}
 	local found = sql.statements(text)
 	for _, statement in found do
+		-- The statement's end is the place after its last byte: on the line of that byte, whatever
+		-- it is (a character of more than one byte has no place inside it to ask about).
 		local first = layout.line_of(SQL, statement.from)
-		local last = layout.line_of(SQL, math.max(statement.to - 1, statement.from))
+		local last = layout.line_of(SQL, statement.to)
 		if first and last and last > first then
 			regions[#regions + 1] = { from = statement.from, to = statement.to, fold = true }
 		end
 	end
-	return { decorate = "folds", version = layout.editor_version(SQL), from = 0, to = length, decorations = regions }
+	return { decorate = "folds", version = layout.editor_version(SQL), from = 1, to = length + 1, decorations = regions }
 end
 
--- The mark of a mistake, where the database pointed in the statement it was given, or none.
+-- The mark of a mistake, where the database pointed in the statement it was given, or none. The
+-- database counts characters from 0 in the text it was sent (`failure.position`); the editor's places
+-- are bytes from 1.
 local marked = false
 local function mark(failure, statement, version)
 	if not (failure and failure.position and statement) then
 		return nil
 	end
+	-- The statement's places are of the text it was run in: after an edit they may be inside a
+	-- character, which is an error to read, and are not where the mistake was.
+	if layout.editor_version(SQL) ~= version then
+		return nil
+	end
 	local length = layout.editor_length(SQL) or 0
-	local text = layout.editor_text(SQL, statement.from, math.min(statement.to, length)) or ""
-	local chars = sql.chars_of(text)
-	local at = math.min(failure.position, math.max(#chars - 1, 0))
-	local from = statement.from + at
-	local to = statement.from + sql.word_end(chars, at)
+	local text = layout.editor_text(SQL, statement.from, math.min(statement.to, length + 1)) or ""
+	local count = utf8.len(text) or #text
+	local character = math.min(failure.position, math.max(count - 1, 0))
+	local at = utf8.offset(text, character + 1) or 1
+	local from = statement.from + at - 1
+	local to = statement.from + sql.word_end(text, at) - 1
 	marked = true
 	return {
 		decorate = "diagnostics",
 		version = version,
-		from = 0,
-		to = length,
+		from = 1,
+		to = length + 1,
 		decorations = {
 			{ from = from, to = to, underline = { wavy = "error" }, background = b.alpha("error", 0.12) },
 			{ from = from, to = to, gutter = "error" },
@@ -108,7 +119,7 @@ local function unmark()
 		return nil
 	end
 	marked = false
-	return { decorate = "diagnostics", version = layout.editor_version(SQL), from = 0, to = layout.editor_length(SQL) or 0, decorations = {} }
+	return { decorate = "diagnostics", version = layout.editor_version(SQL), from = 1, to = (layout.editor_length(SQL) or 0) + 1, decorations = {} }
 end
 
 -- What the editor holds when sqlpen opens: a statement or two for the database it is looking at.
@@ -166,15 +177,32 @@ local function close_popup()
 	return had
 end
 
+-- The text before the caret that completions read: whole lines, about `window` bytes of them (a
+-- place that is not where a character starts is an error, and a line always starts where one does).
+local function text_before_caret(window)
+	local line = layout.line_of(SQL, S.caret) or 1
+	local start = layout.line_start(SQL, line) or S.caret
+	-- The line the caret is on, to the caret: what decides whether it is in a string or a comment.
+	local here = layout.editor_text(SQL, start, S.caret) or ""
+	local steps = 0
+	while line > 1 and S.caret - start < window and steps < 200 do
+		line -= 1
+		steps += 1
+		start = layout.line_start(SQL, line) or start
+	end
+	return here, layout.editor_text(SQL, start, S.caret) or here
+end
+
 -- Opens the popup for the word before the caret (or for nothing yet, where `forced`).
 local function complete(forced)
-	local line = layout.line_of(SQL, S.caret)
-	local line_start = line and layout.line_start(SQL, line) or S.caret
-	if sql.in_words(layout.editor_text(SQL, line_start, S.caret) or "") then
+	-- The caret is of the text it was told for: a place of an older text may lie inside a character.
+	if S.caret_version ~= layout.editor_version(SQL) then
 		return close_popup()
 	end
-	local start = math.max(0, S.caret - 4000)
-	local before = layout.editor_text(SQL, start, S.caret) or ""
+	local here, before = text_before_caret(4000)
+	if sql.in_words(here) then
+		return close_popup()
+	end
 	-- Only the statement the caret is in: what is after its `;` before it.
 	before = string.match(before, "[^;]*$") or before
 	local found = sql.complete(before, S.tables, forced)
@@ -318,7 +346,9 @@ local function run(statement, how)
 	if S.running then
 		b.cancel(S.running.id)
 	end
-	local version = S.version
+	-- The version of the text the statement's places are of (`run_here` read them from the text as the
+	-- page reads it, which may be newer than the last edit it was told of).
+	local version = layout.editor_version(SQL) or S.version
 	local asked = statement.from and statement or nil
 	local method = how and "explain" or "run"
 	local params = { sql = statement.text }
@@ -370,19 +400,19 @@ end
 local function run_here(how)
 	local length = layout.editor_length(SQL) or 0
 	local statement = nil
-	local selected = S.selection
+	local selected = S.caret_version == layout.editor_version(SQL) and S.selection or nil
 	if selected and selected.to > selected.from then
 		-- What is selected is what runs: a part of a statement, or several of them.
 		local text = layout.editor_text(SQL, selected.from, selected.to) or ""
 		local lead = #(string.match(text, "^%s*") or "")
 		local body = string.gsub(string.gsub(text, "^%s+", ""), "[%s;]+$", "")
 		if body ~= "" then
-			statement = { from = selected.from + (utf8.len(string.sub(text, 1, lead)) or lead), text = body }
-			statement.to = statement.from + (utf8.len(body) or #body)
+			statement = { from = selected.from + lead, text = body }
+			statement.to = statement.from + #body
 		end
 	end
 	if not statement then
-		local text = layout.editor_text(SQL, 0, length) or ""
+		local text = layout.editor_text(SQL, 1, length + 1) or ""
 		statement = sql.statement_at(text, S.caret)
 	end
 	if not statement then
@@ -621,11 +651,7 @@ local function status_bar(narrow)
 		row:child(b.div():row():gap(4):child(b.text(hint[1]):color("dim")):child(b.text(hint[2])))
 	end
 	row:child(b.spacer())
-	local line = layout.line_of(SQL, S.caret)
-	if line then
-		local column = S.caret - (layout.line_start(SQL, line) or 0)
-		row:child(b.text(string.format("Ln %d, Col %d", line + 1, column + 1)))
-	end
+	row:child(b.text(string.format("Ln %d, Col %d", S.line, S.column)))
 	if S.info then
 		row:child(b.text(S.info.engine == "postgres" and "PostgreSQL" or "SQLite"))
 	end
@@ -991,7 +1017,14 @@ local function editor_event(event)
 			close_popup()
 		else
 			local first_change = event.changes[1]
-			local line = layout.line_of(SQL, first_change and first_change.from or 0) or S.first_line
+			-- Where the first change is, in the text as the event tells it: the host may post a text that
+			-- is newer (this edit is told after another was made), and a place of the older one may lie
+			-- inside a character of that, which is an error to read. Then the lines in view are coloured.
+			local line = nil
+			if event.version == layout.editor_version(SQL) then
+				line = layout.line_of(SQL, first_change and first_change.from or 1)
+			end
+			line = line or S.first_line
 			asks[#asks + 1] = colour(math.min(line, S.first_line), math.max(line + 1, S.last_line))
 			asks[#asks + 1] = folds()
 			asks[#asks + 1] = unmark()
@@ -1010,7 +1043,18 @@ local function editor_event(event)
 		S.caret = main.head
 		S.selection = { from = math.min(main.anchor, main.head), to = math.max(main.anchor, main.head) }
 		S.composing = event.composing
-		local before = layout.editor_text(SQL, math.max(0, S.caret - 1), S.caret) or ""
+		S.caret_version = event.version
+		-- The line the caret is on, up to it: where it stands in the line (in characters, as a screen
+		-- counts), and whether a word is before it. A line starts where a character does, which the
+		-- byte before the caret may not.
+		local before = ""
+		if event.version == layout.editor_version(SQL) then
+			local line = layout.line_of(SQL, S.caret)
+			if line then
+				before = layout.editor_text(SQL, layout.line_start(SQL, line), S.caret) or ""
+				S.line, S.column = line, (utf8.len(before) or #before) + 1
+			end
+		end
 		S.after_word = string.match(before, "[%w_%.]$") ~= nil
 		if S.composing then
 			return true
