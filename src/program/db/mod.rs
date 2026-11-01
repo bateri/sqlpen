@@ -52,7 +52,7 @@ const KEPT: usize = 8;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Column {
     pub name: String,
-    /// The type as the database names it (`int8`, `text`, `REAL`…), or empty where it says none.
+    /// The type as the database names it (`int8`, `text` or `REAL`, for one), or empty where it says none.
     pub kind: String,
     /// Numbers: the grid sets them to the right.
     pub numeric: bool,
@@ -260,7 +260,7 @@ pub fn cut(text: String, most: usize) -> String {
     }
 }
 
-/// The verb a statement starts with, as the tag of what it did says it (`SELECT`, `UPDATE`…).
+/// The verb a statement starts with, as the tag of what it did says it (`SELECT` or `UPDATE`, for one).
 pub fn verb_of(sql: &str) -> String {
     let mut rest = sql.trim_start();
     // Comments before the statement are not its verb.
