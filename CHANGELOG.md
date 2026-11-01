@@ -7,6 +7,11 @@ the previous one did.
 
 ## [Unreleased]
 
+### Fixed
+
+- Typing a letter such as `ş`, `ğ` or `ü` while the keyboard is off the editor gives it back to the
+  editor, as typing `a` does.
+
 ### Added
 
 - A SQL client in the terminal pane for PostgreSQL (`postgres://…`, or `$DATABASE_URL`) and SQLite

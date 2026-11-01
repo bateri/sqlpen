@@ -989,7 +989,9 @@ local function key(event)
 		elseif name == "escape" or name == "tab" then
 			return to_editor()
 		end
-	elseif name == "escape" or name == "tab" or (string.len(name) == 1 and not mods.command) then
+	elseif name == "escape" or name == "tab" or (utf8.len(name) == 1 and not mods.command) then
+		-- A key that makes a character is named by it, which is more than one byte on a Turkish keyboard
+		-- (`ş`); the other keys have names of their own (`enter`, `f5`).
 		return to_editor()
 	end
 	return nil

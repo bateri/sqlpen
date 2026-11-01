@@ -789,6 +789,27 @@ fn an_edit_in_several_places_at_once_does_not_trip_on_characters_of_more_than_on
     assert!(rig.says("Ln "), "{:?}", rig.words());
 }
 
+/// A key that makes a character is the character, and a letter of a Turkish keyboard is more than one
+/// byte: typed where the page has the keyboard, it goes to the editor as `a` does.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn a_letter_of_more_than_one_byte_typed_off_the_editor_goes_to_the_editor() {
+    for letter in ['a', 'ş', 'ğ', 'ı'] {
+        let mut rig = Rig::open(WIDE);
+        // The keyboard is off the editor, as when the person has clicked elsewhere.
+        rig.editors.set_focus(None);
+        rig.module.event(Event::Focus(None));
+        rig.run();
+        assert_eq!(rig.editors.focused(), None);
+        rig.key(Key::Character(letter), Mods::default());
+        assert_eq!(
+            rig.editors.focused(),
+            Some(Id::named(SQL)),
+            "{letter:?} did not bring the keyboard back to the editor"
+        );
+    }
+}
+
 #[test]
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
 fn a_word_is_completed_with_the_databases_own_names() {
