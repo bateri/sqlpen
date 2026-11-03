@@ -182,7 +182,10 @@ function compare(a, b) {
 function prepare(version) {
   if (!SEMVER.test(version ?? "")) refuse(`"${version}" is not a version (x.y.z)`);
   const current = versionOf();
-  if (compare(version, current) <= 0) refuse(`${version} is not after ${current}`);
+  // Before the first release the version of Cargo.toml is the first release's to take as it is.
+  const first = !sections().some((s) => RELEASED.test(s.heading));
+  const order = compare(version, current);
+  if (order < 0 || (order === 0 && !first)) refuse(`${version} is not after ${current}`);
   const top = unreleased();
   if (top.body === "") refuse("CHANGELOG.md: Unreleased is empty, nothing to release");
   if (sections().some((s) => RELEASED.exec(s.heading)?.[1] === version)) {
