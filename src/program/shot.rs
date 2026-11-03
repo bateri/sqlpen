@@ -303,9 +303,15 @@ pub fn png(
                 let (which, _) = fonts.pick(&run.font);
                 for c in run.text.chars() {
                     let key = (which, c, run.font.size.to_bits());
-                    let (metrics, coverage) = glyphs
-                        .entry(key)
-                        .or_insert_with(|| fonts.pick(&run.font).1.rasterize(c, run.font.size));
+                    let (metrics, coverage) = glyphs.entry(key).or_insert_with(|| {
+                        // Menlo's `·` comes out of this rasterizer as `∑`; the system's is the same dot.
+                        let face = if c == '·' {
+                            &fonts.system
+                        } else {
+                            fonts.pick(&run.font).1
+                        };
+                        face.rasterize(c, run.font.size)
+                    });
                     let x = (pen + metrics.xmin as f32).round() as i32;
                     let y =
                         (baseline - (metrics.height as f32 + metrics.ymin as f32)).round() as i32;

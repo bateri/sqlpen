@@ -5,6 +5,8 @@ left, an editor that knows SQL above, and what a statement gave below — its ro
 runs, or what was wrong with it, marked where the database pointed. With the keyboard or the mouse,
 in the colours and the font of your terminal, on your machine or on a server over plain `ssh`.
 
+![sqlpen: a shop's tables, a statement in the editor and its rows in the grid](docs/grid.png)
+
 sqlpen is a [pencere](https://github.com/bateri/pencere) program. Run it in a terminal that hosts
 pencere views ([bateri](https://github.com/bateri/bateri)) and the pane becomes the interface, the
 way `vim` takes the screen and gives it back; quit and the shell is where it was. Run it anywhere
