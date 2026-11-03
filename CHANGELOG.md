@@ -7,6 +7,8 @@ the previous one did.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-03
+
 ### Fixed
 
 - Typing a letter such as `ş`, `ğ` or `ü` while the keyboard is off the editor gives it back to the

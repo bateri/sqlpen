@@ -32,8 +32,6 @@ The installer takes the newest release (or `SQLPEN_VERSION=0.1.0`), checks it ag
 `SHA256SUMS`, and puts it in `~/.local/bin` (`SQLPEN_INSTALL=<dir>` puts it elsewhere). A file a
 browser downloads is quarantined by macOS; one curl downloads is not.
 
-There is no release yet; until there is one, build it from this repository (below).
-
 ## What it does
 
 **The editor is the terminal's own** (pencere's editor): several carets, undo, the input method of
