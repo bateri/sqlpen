@@ -5,7 +5,24 @@ left, an editor that knows SQL above, and what a statement gave below — its ro
 runs, or what was wrong with it, marked where the database pointed. With the keyboard or the mouse,
 in the colours and the font of your terminal, on your machine or on a server over plain `ssh`.
 
-![sqlpen: a shop's tables, a statement in the editor and its rows in the grid](docs/grid.png)
+<img src="docs/grid.png" width="720" alt="sqlpen: a shop's tables, a statement in the editor and its rows in the grid">
+
+## Install
+
+sqlpen is one file, with nothing to install beside it, for macOS on Apple silicon and Linux on
+arm64 and x86_64:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bateri/sqlpen/main/install.sh | sh
+```
+
+To see the interface you need a terminal that hosts pencere views: [bateri](https://github.com/bateri/bateri), from its 0.23.
+
+The installer takes the newest release (or `SQLPEN_VERSION=0.1.0`), checks it against the release's
+`SHA256SUMS`, and puts it in `~/.local/bin` (`SQLPEN_INSTALL=<dir>` puts it elsewhere). A file a
+browser downloads is quarantined by macOS; one curl downloads is not.
+
+## Use
 
 sqlpen is a [pencere](https://github.com/bateri/pencere) program. Run it in a terminal that hosts
 pencere views ([bateri](https://github.com/bateri/bateri)) and the pane becomes the interface, the
@@ -18,19 +35,6 @@ sqlpen app.db                                   # a SQLite file
 sqlpen postgres://reader@db.example.com/shop    # a PostgreSQL database
 sqlpen                                          # the one $DATABASE_URL names
 ```
-
-## Install
-
-sqlpen is one file, with nothing to install beside it, for macOS on Apple silicon and Linux on
-arm64 and x86_64:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/bateri/sqlpen/main/install.sh | sh
-```
-
-The installer takes the newest release (or `SQLPEN_VERSION=0.1.0`), checks it against the release's
-`SHA256SUMS`, and puts it in `~/.local/bin` (`SQLPEN_INSTALL=<dir>` puts it elsewhere). A file a
-browser downloads is quarantined by macOS; one curl downloads is not.
 
 ## What it does
 
@@ -89,7 +93,7 @@ it is and all it returns is read before the first 10 000 are kept; the list of t
 so a database of many thousands of tables may not show them all; a dropped `.sql` file is opened up
 to 512 KiB.
 
-## Building
+## Work on it
 
 ```sh
 cargo build --release      # target/release/sqlpen, the page carried in it
