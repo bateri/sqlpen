@@ -998,8 +998,9 @@ dependencies = [
 
 [[package]]
 name = "pencere"
-version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=dd00f11ca10a66450da682cdd27bb34cb7738d89#dd00f11ca10a66450da682cdd27bb34cb7738d89"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60ac28ff1f022a381a42053e623bbb8b9191e6da4608cd4137fde048022252df"
 dependencies = [
  "libc",
  "pencere-wire",
@@ -1009,8 +1010,9 @@ dependencies = [
 
 [[package]]
 name = "pencere-editor"
-version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=dd00f11ca10a66450da682cdd27bb34cb7738d89#dd00f11ca10a66450da682cdd27bb34cb7738d89"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93283a3c6337d5a417e35193233914e3bb8857ed5a532f5e7f539b1056b62c0d"
 dependencies = [
  "pencere-view",
  "regex",
@@ -1020,8 +1022,9 @@ dependencies = [
 
 [[package]]
 name = "pencere-sandbox"
-version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=dd00f11ca10a66450da682cdd27bb34cb7738d89#dd00f11ca10a66450da682cdd27bb34cb7738d89"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e2b86fc8f966fc61518c5664c35d14ab2598e8035b75a9098f7327ff2f6a849"
 dependencies = [
  "pencere-view",
  "pencere-wire",
@@ -1035,16 +1038,18 @@ dependencies = [
 
 [[package]]
 name = "pencere-view"
-version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=dd00f11ca10a66450da682cdd27bb34cb7738d89#dd00f11ca10a66450da682cdd27bb34cb7738d89"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93d0550e9fec9e04bcb3c37e9d3ae005de8bad2da8434d4f7e59369b0c78e100"
 dependencies = [
  "taffy",
 ]
 
 [[package]]
 name = "pencere-wire"
-version = "0.3.1"
-source = "git+https://github.com/bateri/pencere?rev=dd00f11ca10a66450da682cdd27bb34cb7738d89#dd00f11ca10a66450da682cdd27bb34cb7738d89"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15900225d536c2d2f10389b2bdbde7ccb842707a9ec8f9ffe9677db8e1c2c213"
 dependencies = [
  "serde",
  "serde_json",

@@ -18,9 +18,8 @@ as the change.
 ## pencere
 
 sqlpen is built against the `pencere` crate, and its page is tested on the kit's crates of the same
-pencere; `Cargo.lock` is the one place pencere is pinned. While sqlpen needs what pencere's `main`
-has and no release of it does, `Cargo.toml` takes every pencere crate from git at one commit
-(`rev = "…"`, written whole). `make dev` takes the `pencere` command it runs sqlpen under from the
+pencere; `Cargo.lock` is the one place pencere is pinned. `Cargo.toml` takes it from pencere's release on
+crates.io. `make dev` takes the `pencere` command it runs sqlpen under from the
 same pencere: `make pencere` fetches the commit, or the tag `crates-v<version>` of a release on
 crates.io, that `Cargo.lock` names (`node tools/release.mjs pencere-ref`) into `.cache/pencere` and
 builds it there. Nothing else says which pencere: moving it is a change of `Cargo.toml` and

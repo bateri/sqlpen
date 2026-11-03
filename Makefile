@@ -2,7 +2,7 @@
 # and the steps of a release, in the order and for the reasons RELEASING.md gives.
 .PHONY: check fmt lint test test-page test-tools shots pencere dev dist sums release-prepare rehearse
 
-# pencere is pinned in one place, Cargo.lock (Cargo.toml names the commit): the crates the program
+# pencere is pinned in one place, Cargo.lock (Cargo.toml names the release): the crates the program
 # is built on, and the page's tests, run in pencere's own interpreter, are of it. `make dev` runs
 # sqlpen under the `pencere` command of the same pencere, built from it in .cache/pencere: nothing
 # looks at a pencere beside this directory or on PATH. To work against a checkout you are changing,
