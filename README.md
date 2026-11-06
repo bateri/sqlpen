@@ -101,7 +101,7 @@ make check                 # formatting, lints and the tests (the page's and the
 make shots                 # pictures of the page in target/shots/ (macOS)
 ```
 
-`make check` needs Rust 1.88 or later and Node 22 (for the installer's tests and the release
+`make check` needs Rust 1.99 or later and Node 22 (for the installer's tests and the release
 tools). It is the gate GitHub runs on every push and pull request, on Linux and macOS; how a release
 is made is in RELEASING.md.
 

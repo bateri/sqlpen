@@ -2,7 +2,7 @@
 name = "sqlpen"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.99"
 license = "GPL-3.0-or-later"
 description = "A SQL client in the terminal pane: PostgreSQL and SQLite, with an editor, a grid and plans"
 repository = "https://github.com/bateri/sqlpen"

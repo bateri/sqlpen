@@ -7,7 +7,7 @@ it with `install.sh` (see the README).
 
 Each file is the Rust program with its page (`src/view/`, `src/assets/`) carried in it, SQLite built
 in. The release workflow builds each on a runner of its own system and architecture, with the
-toolchain the gate runs with (Rust 1.88), from nothing.
+toolchain the gate runs with (Rust 1.99), from nothing.
 
 ## Versions and the changelog
 

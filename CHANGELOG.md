@@ -7,6 +7,10 @@ the previous one did.
 
 ## [Unreleased]
 
+### Changed
+
+- Building from source now needs Rust 1.99 or later.
+
 ## [0.1.0] - 2026-11-03
 
 ### Fixed
