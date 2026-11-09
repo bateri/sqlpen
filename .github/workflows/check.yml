@@ -59,7 +59,7 @@ jobs:
           {
             echo "### What this run was held to"
             echo
-            echo "pencere at \`$(node tools/release.mjs pencere-ref)\` (\`Cargo.lock\`): the crate the program is built on, and the kit's crates (its interpreter and editors) the page's tests run the page on."
+            echo "pencere at \`$(make -s pencere-ref)\` (\`Cargo.lock\`): the crate the program is built on, and the kit's crates (its interpreter and editors) the page's tests run the page on."
             if [ -n "${SQLPEN_TEST_PG:-}" ]; then
               echo
               echo "PostgreSQL: the program's tests ran against PostgreSQL 17 with the demo database."

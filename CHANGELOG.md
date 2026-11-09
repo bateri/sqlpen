@@ -7,6 +7,13 @@ the previous one did.
 
 ## [Unreleased]
 
+### Added
+
+- **Releases carry a signed `app.json`.** A terminal that follows sqlpen (bateri, from its list of
+  apps) reads it to find the newest file it can open and to know the file is the one the maintainer
+  released. `make sums` writes it and its signature beside `SHA256SUMS`, and the release checks
+  refuse a release without them.
+
 ### Changed
 
 - Building from source now needs Rust 1.99 or later.
