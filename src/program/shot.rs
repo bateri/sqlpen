@@ -88,8 +88,12 @@ impl Measure for Fonts {
         }
     }
 
-    /// The size of a picture of the page: an SVG's own, as the host's decoder says it.
-    fn image(&mut self, src: &str) -> Option<Size> {
+    /// The size of a picture of the page: an SVG's own, as the host's decoder says it. It has one
+    /// page, the first.
+    fn image(&mut self, src: &str, page: u32) -> Option<Size> {
+        if page != 1 {
+            return None;
+        }
         let svg = std::fs::read(self.files.join(src)).ok()?;
         let tree = resvg::usvg::Tree::from_data(&svg, &resvg::usvg::Options::default()).ok()?;
         Some(Size::new(tree.size().width(), tree.size().height()))
