@@ -518,6 +518,16 @@ impl Rig {
             .collect()
     }
 
+    /// What a screen reader is told of the element named `id` (what `bateri view` reads of it): its
+    /// role, its words and where it stands.
+    fn heard(&self, id: &str) -> pencere_view::Accessible {
+        self.laid
+            .accessible()
+            .into_iter()
+            .find(|item| item.id == Some(Id::named(id)))
+            .unwrap_or_else(|| panic!("a screen reader is told nothing of {id}"))
+    }
+
     fn says(&self, words: &str) -> bool {
         self.words().iter().any(|text| text.contains(words))
     }
@@ -1239,6 +1249,71 @@ fn the_header_of_each_column_is_as_wide_as_its_cells() {
 
 /// Pictures for the eye (`cargo test shots -- --ignored`, then look at target/shots/): the demo's
 /// grid, a wide result scrolled across, the caret on its line, a selection, a fold, the completions, a plan, a mistake, an 80×24 pane.
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn the_divider_between_the_editor_and_the_results_is_named_by_what_it_does() {
+    let rig = Rig::open(WIDE);
+    let divider = rig.heard("split");
+    assert_eq!(divider.words, "Resize the editor and the results");
+}
+
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn the_completion_that_is_chosen_is_chosen_to_a_screen_reader_and_not_by_its_fill_alone() {
+    let mut rig = Rig::open(WIDE);
+    let end = rig.text().len();
+    rig.caret_to(end);
+    rig.type_letters("select * from ord");
+    let first = rig.heard("completion:1");
+    assert!(
+        first.state.selected,
+        "the first is chosen when the list opens"
+    );
+    assert!(first.words.contains("orders"), "{:?}", first.words);
+    assert!(!rig.heard("completion:2").state.selected);
+    rig.key(Key::Down, Mods::default());
+    assert!(
+        rig.heard("completion:2").state.selected,
+        "Down chooses the next"
+    );
+    assert!(
+        !rig.heard("completion:1").state.selected,
+        "and leaves the first"
+    );
+}
+
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn the_row_of_the_chosen_cell_is_chosen_to_a_screen_reader_and_says_which_cell() {
+    let mut rig = Rig::open(WIDE);
+    rig.press("table:main.events", 2);
+    assert!(!rig.heard("row:1").state.selected, "no cell is chosen yet");
+    assert_eq!(rig.heard("row:1").state.value, None);
+    rig.press_at_column("row:1", 2, 1);
+    let row = rig.heard("row:1");
+    assert!(row.state.selected, "the row of the chosen cell is chosen");
+    let value = row.state.value.expect("the chosen cell is named");
+    assert!(value.contains(": "), "{value:?}");
+    assert!(!rig.heard("row:2").state.selected, "and no other row is");
+    // The arrows move the choice to the row below.
+    rig.key(Key::Down, Mods::default());
+    assert!(
+        !rig.heard("row:1").state.selected,
+        "the choice left the first row"
+    );
+    assert!(rig.heard("row:2").state.selected, "and is in the second");
+}
+
+#[test]
+#[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
+fn the_shade_behind_a_value_that_is_open_is_named_by_what_a_press_on_it_does() {
+    let mut rig = Rig::open(WIDE);
+    rig.press("table:main.events", 2);
+    rig.press_at_column("row:1", 4, 2);
+    assert!(rig.says("session"), "{:?}", rig.words());
+    assert_eq!(rig.heard("inspect-shade").words, "Close the value");
+}
+
 #[test]
 #[ignore = "heavy: draws pictures of the page for a person to look at"]
 fn shots() {

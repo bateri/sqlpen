@@ -7,6 +7,14 @@ the previous one did.
 
 ## [Unreleased]
 
+### Fixed
+
+- A screen reader, and an agent that reads the pane, are told which completion is chosen, which row
+  holds the chosen cell of the results and which cell it is, and what the divider between the editor
+  and the results is for, and the card of an open value and the click that closes it have a name,
+  where the click was read as one button with all the words of the card. They were told by fill alone,
+  or not at all.
+
 ## [0.2.0] - 2026-11-09
 
 ### Added

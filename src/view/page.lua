@@ -289,6 +289,10 @@ local function popup_view()
 		local chosen = index == popup.chosen
 		local row = b.div()
 			:press("completion:" .. index)
+			-- A choice of the list to a screen reader, the one that Tab or Enter puts in chosen: the
+			-- fill says it to the eye.
+			:role("menu_item")
+			:selected(chosen)
 			:row()
 			:items_center()
 			:gap(8)
@@ -543,7 +547,6 @@ local function editor_view()
 			:command("completion-accept", "Accept the completion", "enter")
 			:command("completion-take", "Take the completion", "tab")
 			:command("completion-close", "Close the completions", "escape")
-			:child(popup_view())
 	end
 	return editor
 end
@@ -552,6 +555,8 @@ local function split_view()
 	local hover = kit.hovered(SPLIT) or (S.dragging and S.dragging.kind == "split")
 	return b.div()
 		:press(SPLIT)
+		-- Nothing in it is a word, and it is a drag, not a click: what it does is its name.
+		:label("Resize the editor and the results")
 		:h(7)
 		:w_full()
 		:no_shrink()
@@ -709,8 +714,14 @@ local function render(size, now)
 	end
 	local available = size.h - SIZE.header - SIZE.status - 2
 	local editor_h = math.clamp(math.floor(available * S.split), 80, math.max(available - 140, 80))
+	-- The completions stand beside the editor and not in it: what is in an editor is not read apart
+	-- from it, and a screen reader is to be told which of them is chosen.
+	local editing = b.div():col():h(editor_h):no_shrink():child(editor_view())
+	if S.popup then
+		editing:child(popup_view())
+	end
 	local main = b.div():col():grow(1):min_w(0):min_h(0)
-		:child(b.div():col():h(editor_h):no_shrink():child(editor_view()))
+		:child(editing)
 		:child(split_view())
 		:child(results())
 	local body = b.div():row():grow(1):min_h(0)

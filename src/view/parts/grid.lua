@@ -359,6 +359,13 @@ function M.view(shown)
 		local values = shown.rows[index]
 		local row_id = "row:" .. place
 		local line = b.div():press(row_id):row():items_center():h(SIZE.row):w(room):no_shrink()
+		if chosen and chosen.row == place and shown.columns[chosen.column] then
+			-- The row of the chosen cell is the one chosen to a screen reader, and its value names the
+			-- cell: what is in a row is read with it, so the cell's box says it to the eye alone.
+			local spec = shown.columns[chosen.column]
+			local value = values and values[chosen.column]
+			line:selected():value(spec.name .. ": " .. (value == nil and "NULL" or value))
+		end
 		if kit.hovered(row_id) then
 			line:bg(b.alpha("raised2", 0.9))
 		elseif place % 2 == 0 then
