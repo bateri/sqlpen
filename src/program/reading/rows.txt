@@ -1,0 +1,74 @@
+items:
+       text "sqlpen"
+       text "demo"
+       text "in memory"
+       text "SQLite 3.50.2"
+       text "READ ONLY"
+2a0891 button "Explain"
+a81960 button "Run"
+       text "Tables"
+       text "5 · 1 views"
+ea4165 button "customers 2k" [collapsed]
+a3e14f button "events 5k" [collapsed]
+58ad95 button "order_items 50k" [collapsed]
+efe052 button "orders 20k" [collapsed]
+3b7ad6 button "products 200" [collapsed]
+10144f button "revenue_by_month" [collapsed]
+7f195d editor "Write SQL here"
+7a8ac3 slider "Resize the editor and the results"
+       text "Results"
+       text "1,000 rows"
+       text "# ms"
+       text "select * from events limit 1000"
+039119 button "Copy"
+d39755 button "CSV"
+       text "#"
+bfb500 button "id integer"
+28b435 slider "id column width"
+beb500 button "at text"
+25b435 slider "at column width"
+bdb500 button "kind text"
+26b435 slider "kind column width"
+c4b500 button "payload text"
+2bb435 slider "payload column width"
+654694 button "1 1 2026-09-26 00:08:43 cart {"session":"32363534343335373631","ms":37,"path":"/p/2"}"
+644694 button "2 2 2026-09-26 00:17:26 checkout {"session":"35333038383731353232","ms":74,"path":"/p/3"}"
+634694 button "3 3 2026-09-26 00:26:09 search {"session":"37393633333037323833","ms":111,"path":"/p/4"}"
+6a4694 button "4 4 2026-09-26 00:34:52 login {"session":"3130363137373433303434","ms":148,"path":"/p/5"}"
+694694 button "5 5 2026-09-26 00:43:35 view {"session":"3133323732313738383035","ms":185,"path":"/p/6"}"
+684694 button "6 6 2026-09-26 00:52:18 cart {"session":"3135393236363134353636","ms":222,"path":"/p/7"}"
+674694 button "7 7 2026-09-26 01:01:01 checkout {"session":"3138353831303530333237","ms":259,"path":"/p/8"}"
+6e4694 button "8 8 2026-09-26 01:09:44 search {"session":"3231323335343836303838","ms":296,"path":"/p/9"}"
+6d4694 button "9 9 2026-09-26 01:18:27 login {"session":"3233383839393231383439","ms":333,"path":"/p/10"}"
+8ced91 button "10 10 2026-09-26 01:27:10 view {"session":"3236353434333537363130","ms":370,"path":"/p/11"}"
+8ded91 button "11 11 2026-09-26 01:35:53 cart {"session":"3239313938373933333731","ms":407,"path":"/p/12"}"
+8aed91 button "12 12 2026-09-26 01:44:36 checkout {"session":"3331383533323239313332","ms":444,"path":"/p/13"}"
+8bed91 button "13 13 2026-09-26 01:53:19 search {"session":"3334353037363634383933","ms":481,"path":"/p/14"}"
+       text "⌘Enter"
+       text "run"
+       text "Tab"
+       text "complete"
+       text "⌘E"
+       text "plan"
+       text "⇧⌘E"
+       text "plan, run"
+       text "⌘."
+       text "stop"
+       text "Ln 1, Col 1"
+       text "SQLite"
+editors:
+7f195d editor "sql"
+   1| -- sqlpen · demo · SQLite 3.50.2
+   2| -- ⌘Enter runs the statement under the caret (or what is selected) · ⌘E shows how it would run
+   3| -- Tab completes a word: tables, columns, keywords
+   4| 
+   5| select c.country, count(*) as orders, round(sum(o.total), 2) as revenue
+   6| from orders o
+   7| join customers c on c.id = o.customer_id
+   8| where o.status <> 'refunded'
+   9| group by c.country
+  10| order by revenue desc;
+  11| 
+  12| select * from revenue_by_month;
+  13| 
+  14| select id, at, kind, payload from events order by at desc limit 200;

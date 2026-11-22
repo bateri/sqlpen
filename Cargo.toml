@@ -15,7 +15,7 @@ path = "src/program/main.rs"
 # The program's side of pencere, at the commit that has `pencere dist`, which writes the app.json of
 # a release (the release on crates.io does not yet): every pencere crate here is at this one `rev`,
 # which Cargo.lock holds and `make pencere` and `make dev` build the terminal from.
-pencere = { git = "https://github.com/bateri/pencere", rev = "02b59c336724a6010b042518d49400a077381708" }
+pencere = { git = "https://github.com/bateri/pencere", rev = "fe6f14ca05037f9655c6f78539ac3bb3bd62fbe7" }
 serde_json = "1"
 # PostgreSQL: the blocking client over tokio-postgres, TLS by rustls with ring (no C toolchain), the
 # system's roots. The same stack pgterm uses.
@@ -27,13 +27,13 @@ rustls-native-certs = "0.8"
 rusqlite = { version = "0.37", features = ["bundled", "modern_sqlite", "column_decltype"] }
 
 [build-dependencies]
-pencere = { git = "https://github.com/bateri/pencere", rev = "02b59c336724a6010b042518d49400a077381708" }
+pencere = { git = "https://github.com/bateri/pencere", rev = "fe6f14ca05037f9655c6f78539ac3bb3bd62fbe7" }
 
 [dev-dependencies]
 # The page is run against the kit's own interpreter and editors, as a terminal runs it.
-pencere-sandbox = { git = "https://github.com/bateri/pencere", rev = "02b59c336724a6010b042518d49400a077381708" }
-pencere-view = { git = "https://github.com/bateri/pencere", rev = "02b59c336724a6010b042518d49400a077381708" }
-pencere-editor = { git = "https://github.com/bateri/pencere", rev = "02b59c336724a6010b042518d49400a077381708" }
+pencere-sandbox = { git = "https://github.com/bateri/pencere", rev = "fe6f14ca05037f9655c6f78539ac3bb3bd62fbe7" }
+pencere-view = { git = "https://github.com/bateri/pencere", rev = "fe6f14ca05037f9655c6f78539ac3bb3bd62fbe7" }
+pencere-editor = { git = "https://github.com/bateri/pencere", rev = "fe6f14ca05037f9655c6f78539ac3bb3bd62fbe7" }
 # Pictures of the page for the eye (`shot`): the page drawn as the kit lays it out, in the system's
 # fonts, by the rasteriser and the SVG renderer the kit's own sandbox uses.
 resvg = { version = "0.48.1", default-features = false }

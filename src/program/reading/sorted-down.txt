@@ -1,0 +1,78 @@
+items:
+       text "sqlpen"
+       text "demo"
+       text "in memory"
+       text "SQLite 3.50.2"
+       text "READ ONLY"
+2a0891 button "Explain"
+a81960 button "Run"
+       text "Tables"
+       text "5 · 1 views"
+ea4165 button "customers 2k" [collapsed]
+a3e14f button "events 5k" [collapsed]
+58ad95 button "order_items 50k" [collapsed]
+efe052 button "orders 20k" [collapsed]
+3b7ad6 button "products 200" [collapsed]
+10144f button "revenue_by_month" [collapsed]
+7f195d editor "Write SQL here"
+7a8ac3 slider "Resize the editor and the results"
+       text "Results"
+       text "200 rows"
+       text "# ms"
+       text "select * from products limit 1000"
+039119 button "Copy"
+d39755 button "CSV"
+       text "#"
+bfb500 button "id integer"
+28b435 slider "id column width"
+beb500 button "sku ↓ text"
+25b435 slider "sku column width"
+bdb500 button "title text"
+26b435 slider "title column width"
+c4b500 button "category text"
+2bb435 slider "category column width"
+c3b500 button "price real"
+2cb435 slider "price column width"
+c2b500 button "tags text"
+29b435 slider "tags column width"
+654694 button "1 200 SKU-00200 Mug #200 home 498 ["new"]"
+644694 button "2 199 SKU-00199 Desk #199 kitchen 418.81 ["gift"]"
+634694 button "3 198 SKU-00198 Headphones #198 travel 339.62 ["eco"]"
+6a4694 button "4 197 SKU-00197 Backpack #197 audio 260.43 ["sale"]"
+694694 button "5 196 SKU-00196 Kettle #196 office 181.24 ["new"]"
+684694 button "6 195 SKU-00195 Chair #195 home 102.05 ["gift"]"
+674694 button "7 194 SKU-00194 Lamp #194 kitchen 22.86 ["eco"]"
+6e4694 button "8 193 SKU-00193 Notebook #193 travel 438.67 ["sale"]"
+6d4694 button "9 192 SKU-00192 Mug #192 audio 359.48 ["new"]"
+8ced91 button "10 191 SKU-00191 Desk #191 office 280.29 ["gift"]"
+8ded91 button "11 190 SKU-00190 Headphones #190 home 201.1 ["eco"]"
+8aed91 button "12 189 SKU-00189 Backpack #189 kitchen 121.91 ["sale"]"
+8bed91 button "13 188 SKU-00188 Kettle #188 travel 42.72 ["new"]"
+       text "⌘Enter"
+       text "run"
+       text "Tab"
+       text "complete"
+       text "⌘E"
+       text "plan"
+       text "⇧⌘E"
+       text "plan, run"
+       text "⌘."
+       text "stop"
+       text "Ln 1, Col 1"
+       text "SQLite"
+editors:
+7f195d editor "sql"
+   1| -- sqlpen · demo · SQLite 3.50.2
+   2| -- ⌘Enter runs the statement under the caret (or what is selected) · ⌘E shows how it would run
+   3| -- Tab completes a word: tables, columns, keywords
+   4| 
+   5| select c.country, count(*) as orders, round(sum(o.total), 2) as revenue
+   6| from orders o
+   7| join customers c on c.id = o.customer_id
+   8| where o.status <> 'refunded'
+   9| group by c.country
+  10| order by revenue desc;
+  11| 
+  12| select * from revenue_by_month;
+  13| 
+  14| select id, at, kind, payload from events order by at desc limit 200;

@@ -5,6 +5,13 @@
 -- below, what the statement gave: its rows in a grid, its plan, or what was wrong with it, marked in
 -- the editor where the database pointed. The program does the database's part.
 
+-- Asked of the kit before anything is used that an older one does not have: where it has not, a screen
+-- that says so, and nothing else.
+local needs = require("./lib/needs")
+if not needs.met() then
+	return needs.screen()
+end
+
 local kit = require("./lib/kit")
 local sql = require("./lib/sql")
 local schema = require("./parts/schema")
@@ -556,6 +563,7 @@ local function split_view()
 	return b.div()
 		:press(SPLIT)
 		-- Nothing in it is a word, and it is a drag, not a click: what it does is its name.
+		:role("slider")
 		:label("Resize the editor and the results")
 		:h(7)
 		:w_full()

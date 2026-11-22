@@ -1,0 +1,46 @@
+items:
+       text "sqlpen"
+       text "demo"
+       text "SQLite 3.50.2"
+       text "READ ONLY"
+a81960 button "Run"
+7f195d editor "Write SQL here"
+7a8ac3 slider "Resize the editor and the results"
+       text "Results"
+       text "24 rows"
+       text "# ms"
+       text "select * from revenue_by_month"
+039119 button "Copy"
+d39755 button "CSV"
+       text "#"
+bfb500 button "month text"
+28b435 slider "month column width"
+beb500 button "orders integer"
+25b435 slider "orders column width"
+bdb500 button "revenue real"
+26b435 slider "revenue column width"
+654694 button "1 2024-06 712 876195.68"
+644694 button "2 2024-07 742 947880.29"
+634694 button "3 2024-08 737 948438.33"
+       text "⌘Enter"
+       text "run"
+       text "Tab"
+       text "complete"
+       text "Ln 12, Col 4"
+       text "SQLite"
+editors:
+7f195d editor "sql"
+   1| -- sqlpen · demo · SQLite 3.50.2
+   2| -- ⌘Enter runs the statement under the caret (or what is selected) · ⌘E shows how it would run
+   3| -- Tab completes a word: tables, columns, keywords
+   4| 
+   5| select c.country, count(*) as orders, round(sum(o.total), 2) as revenue
+   6| from orders o
+   7| join customers c on c.id = o.customer_id
+   8| where o.status <> 'refunded'
+   9| group by c.country
+  10| order by revenue desc;
+  11| 
+  12| select * from revenue_by_month;
+  13| 
+  14| select id, at, kind, payload from events order by at desc limit 200;

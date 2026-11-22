@@ -14,6 +14,10 @@ the previous one did.
   and the results is for, and the card of an open value and the click that closes it have a name,
   where the click was read as one button with all the words of the card. They were told by fill alone,
   or not at all.
+  The card of an open value is read as a dialog, with the page behind it left out of what is read, and the
+  dimmed part around it is not read. The lines that resize a column are sliders with the column's name,
+  where they were unnamed buttons. A pencere too old for this shows a screen that says to update bateri,
+  instead of a page that does not run.
 
 ## [0.2.0] - 2026-11-09
 

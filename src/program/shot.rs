@@ -391,7 +391,7 @@ pub fn png(
                     picture.clip,
                 );
             }
-            Paint::Editor(_) => {}
+            Paint::Editor(_) | Paint::Browser(_) => {}
         }
     }
     if let Some(parent) = path.parent() {

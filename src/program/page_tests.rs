@@ -460,6 +460,8 @@ impl Rig {
             x: None,
             y: Some(y),
             animate: false,
+            zoom: None,
+            at: None,
         });
         self.lay_out();
         self.tell();
@@ -558,6 +560,7 @@ impl Rig {
         self.module.event(Event::Input(Input::Release {
             at,
             button: pencere_view::Button::Left,
+            mods,
         }));
         self.run();
     }
@@ -578,6 +581,7 @@ impl Rig {
         self.module.event(Event::Input(Input::Release {
             at,
             button: pencere_view::Button::Left,
+            mods,
         }));
         self.run();
     }
@@ -1172,6 +1176,8 @@ fn the_header_goes_across_with_the_rows_in_the_same_frame_and_stays_when_they_go
         x: Some(200.0),
         y: None,
         animate: false,
+        zoom: None,
+        at: None,
     });
     rig.lay_out();
     assert_eq!(head(&rig).x, head_before.x - 200.0);
@@ -1182,6 +1188,8 @@ fn the_header_goes_across_with_the_rows_in_the_same_frame_and_stays_when_they_go
         x: None,
         y: Some(240.0),
         animate: false,
+        zoom: None,
+        at: None,
     });
     rig.lay_out();
     assert_eq!(head(&rig).y, head_before.y);
@@ -1194,12 +1202,18 @@ fn the_pointer_over_the_editor_is_a_place_to_type_after_the_divider_made_it_a_re
     let mut rig = Rig::open(WIDE);
     let split = rig.laid.bounds(Id::named("split")).expect("the divider");
     let on_split = Point::new(split.x + split.w / 2.0, split.y + split.h / 2.0);
-    rig.module.event(Event::Input(Input::Move(on_split)));
+    rig.module.event(Event::Input(Input::Move {
+        at: on_split,
+        mods: Mods::default(),
+    }));
     rig.run();
     assert_eq!(rig.cursor, Some(pencere_view::Cursor::ResizeVertical));
     let editor = rig.laid.bounds(Id::named(SQL)).expect("the editor");
     rig.module.event(Event::Pointer {
-        input: Input::Move(Point::new(editor.x + 40.0, editor.y + 20.0)),
+        input: Input::Move {
+            at: Point::new(editor.x + 40.0, editor.y + 20.0),
+            mods: Mods::default(),
+        },
         place: pencere_view::Place {
             editor: Id::named(SQL),
             at: 3,
@@ -1255,6 +1269,7 @@ fn the_divider_between_the_editor_and_the_results_is_named_by_what_it_does() {
     let rig = Rig::open(WIDE);
     let divider = rig.heard("split");
     assert_eq!(divider.words, "Resize the editor and the results");
+    assert_eq!(divider.role, pencere_view::AccessibleRole::Slider);
 }
 
 #[test]
@@ -1306,12 +1321,25 @@ fn the_row_of_the_chosen_cell_is_chosen_to_a_screen_reader_and_says_which_cell()
 
 #[test]
 #[ignore = "heavy: compiles the kit's interpreter and drives the page for seconds; make test-page"]
-fn the_shade_behind_a_value_that_is_open_is_named_by_what_a_press_on_it_does() {
+fn the_shade_behind_a_value_that_is_open_is_a_layer_that_is_not_read() {
     let mut rig = Rig::open(WIDE);
     rig.press("table:main.events", 2);
     rig.press_at_column("row:1", 4, 2);
     assert!(rig.says("session"), "{:?}", rig.words());
-    assert_eq!(rig.heard("inspect-shade").words, "Close the value");
+    let told = rig.laid.accessible();
+    assert!(
+        told.iter()
+            .all(|item| item.id != Some(Id::named("inspect-shade"))),
+        "the dimmed part is not read: {told:?}"
+    );
+    let card = rig.heard("inspect");
+    assert_eq!(card.role, pencere_view::AccessibleRole::Dialog);
+    assert_eq!(card.words, "Value of at");
+    // The page behind the card is out of the reading, as it is behind a modal.
+    assert!(
+        told.iter().all(|item| item.id != Some(Id::named("split"))),
+        "{told:?}"
+    );
 }
 
 #[test]
@@ -1368,3 +1396,7 @@ fn shots() {
     narrow.command("run");
     narrow.shot("narrow");
 }
+
+/// What the page reads as, in its states: a child of this module, to use the rig (`page_reading.rs`).
+#[path = "page_reading.rs"]
+mod page_reading;

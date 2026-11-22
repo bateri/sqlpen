@@ -105,7 +105,8 @@ function M.view(width, height)
 		:child(kit.button(M.CLOSE, "", { icon = "x", label = "Close", keys = "escape", compact = true, px = 7 }))
 	local card = b.div()
 		:press(M.CARD)
-		-- A press on it does nothing (it keeps the shade from closing); it is read as the value it shows.
+		-- A press on it does nothing (it keeps the shade from closing); it is the dialog of the value it shows.
+		:role("dialog")
 		:label("Value of " .. (open.name or "the cell"))
 		:col()
 		:w(math.min(720, width - 48))
@@ -120,8 +121,9 @@ function M.view(width, height)
 		:child(body)
 	return b.div()
 		:press(M.SHADE)
-		-- What a press on the shade does, to a screen reader: the words inside are the card's.
-		:label("Close the value")
+		-- The dimmed part is a layer over the page that a press gives up, and no one reads it.
+		:role("none")
+		:layer(true)
 		:overlay()
 		:inset(0, 0, 0, 0)
 		:bg(b.alpha("shadow", 0.32))

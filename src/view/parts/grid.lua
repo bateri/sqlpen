@@ -310,6 +310,9 @@ local function header(shown, widths, first, last, start, room)
 		head:child(
 			b.div()
 				:press(edge)
+				-- A line the pointer drags: it resizes the column it ends.
+				:role("slider")
+				:label(column.name .. " column width")
 				:absolute()
 				:inset(0, 0, 0, nil)
 				:w(7)

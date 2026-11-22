@@ -1,0 +1,23 @@
+items:
+58a2f6 dialog "Value of at"
+       text "at"
+       text "TEXT"
+2f1f1f button "Copy"
+eef9a7 button "Close"
+       text "2026-09-26 00:08:43"
+editors:
+7f195d editor "sql"
+   1| -- sqlpen · demo · SQLite 3.50.2
+   2| -- ⌘Enter runs the statement under the caret (or what is selected) · ⌘E shows how it would run
+   3| -- Tab completes a word: tables, columns, keywords
+   4| 
+   5| select c.country, count(*) as orders, round(sum(o.total), 2) as revenue
+   6| from orders o
+   7| join customers c on c.id = o.customer_id
+   8| where o.status <> 'refunded'
+   9| group by c.country
+  10| order by revenue desc;
+  11| 
+  12| select * from revenue_by_month;
+  13| 
+  14| select id, at, kind, payload from events order by at desc limit 200;
